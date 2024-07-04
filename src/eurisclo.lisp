@@ -2733,10 +2733,6 @@
   (or (some-o-pair l rel)
       (some-o-pair (reverse l) rel)))
 
-(LOAD "units.lisp")
-
-(LOAD "heuristics.lisp")
-
 ;; End of file stuff from EUR, does environmental set up in prep for being executed:
 ;; Actually, this is exactly what's in EURCOMS at the top of the file, probably an RLL editing mechanism
 
