@@ -9,7 +9,9 @@ This is a work in progress. It doesn't work. It might progress.
 
 * Make sure you have Quicklisp loaded one way or another.
 
-* Load eurisclo.lisp, probably via: `(LOAD "eurisclo.lisp")`
+* Add a symlink in ~/quicklisp/local-projects/ to the eurisclo directory.
+
+* Load eurisclo using quicklisp: `(ql:quickload "eurisclo")`
 
 * Optionally: Enter the eurisclo package using `(in-package :eurisclo)`. If you don't do this, you will need to preface every reference with `eurisclo:`
 
