@@ -2275,21 +2275,20 @@
   (let ((units-focused-on nil)
         (uu nil))
     (loop do (progn
-               (cond
-                 ((setf uu (set-diff *units* units-focused-on)))
-                 (eternal-flag (cprin1 3 "~%~%~%Have focused on all the units at least once.  Starting another pass through them.~%~%~%")
-                               (setf units-focused-on nil))
-                 (t (format t "~%Should I continue with another pass? ")
-                    (or (yes-no)
-                        (return 'eurisko-halting))
-                    (setf units-focused-on nil)))
-               ;; TODO - by just hitting maximum worth, this will always start with the exact same units in order?
-               (push (work-on-unit (maximum uu #'worth)) units-focused-on)
-               (and (is-alto)
+                (cond
+                  ((setf uu (set-diff *units* units-focused-on)))
+                  (t (setf units-focused-on nil)))
+                ;; TODO - by just hitting maximum worth, this will always start with the exact same units in order?
+                (push (work-on-unit (maximum uu #'worth)) units-focused-on)
+                (and (is-alto)
                     ;;(null *agenda*)
                     ;;(DSPRESET BitAgenda)
                     ;;(cprin1 (length uu) " concepts still must be focused on sometime")
-                    )))))
+                )
+                (unless eternal-flag
+                  (format t "~%Should I continue with another pass? ")
+                  (or (yes-no)
+                      (return 'eurisko-halting)))))))
 
 
 
