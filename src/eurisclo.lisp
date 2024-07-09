@@ -1,4 +1,4 @@
-;; Dribble/trace files:
+;; Dribble/trace/output files:
 ;;  1981-02-26 17:15  EUR[AM,DBL]1
 ;;   1981-02-26 17:19  RLL.DRI[AM,DBL]
 ;;   1981-03-20 10:44  TRACE.MAR[AM,DBL]
@@ -11,6 +11,8 @@
 ;;   1981-03-29 20:07  T329.8[AM,DBL]
 ;;   1981-03-29 20:07  T329.9[AM,DBL]
 ;;  1981-05-19 12:27  EUR[AM,DBL]3  <- this is the version I ported
+;;   1981-06-29 23:05  FLEET.Q
+;;   1981-06-30 09:35  FLEET.C
 
 ;; Searching for RLL:
 ;;  RECORD[RLL,DBL] seems to have a lot, but not all, of RLL docmented functions
@@ -435,7 +437,10 @@
 
 (defun getprop (symbol key)
   "Return a single property value"
-  (get symbol key))
+  ;; Interlisp returns NIL if symbol isn't a symbol
+  ;; Units can be raw numbers, which was blowing this up before the check
+  (and (symbolp symbol)
+       (get symbol key)))
 
 (defun getproplist (symbol)
   "Return the entire proplist"
@@ -1292,12 +1297,16 @@
       (find-if (lambda (s)
                  (funcall s u))
                (sub-slots 'defn))
-      ;; TODO - was (isa u 'category), I think this is what it meant, as #'isa is just a slot reader
-      (and (is-a-kind-of u 'category)
+      ;; TODO - was (isa u 'category), which is a misuse passing an extra param, which IL ignores
+      ;;        It's just returning the isa list, which will be non-nil on everything but raw
+      ;;        numbers, because everything is an Anything.
+      ;; Could have been meant to be (memb 'category (usa u)), or (is-a-kind-of u 'category) depending on depth,
+      ;; but returning NIL from here breaks things when that test fails
+      (and (memb 'category (isa u)) ;;(is-a-kind-of u 'category)
            ;; Defn of a category is an ISA test
-           ;; TODO - return a closure, or this source code?
-           `(lambda (z)
-              (memb ',u (isa z))))))
+           ;; TODO - this was returning literal source code, which killed a funcall/APPLY*. Trying a closure instead.
+           (lambda (z)
+              (memb u (isa z))))))
 
 (defun examples (u &optional looked-thru)
   ;; TODO - comment
@@ -1860,38 +1869,44 @@
       (snazzy-task)
       (snazzy-agenda)
       (snazzy-concept t))
-    (or (every (lambda (p)
-                 ;; TODO - this *heuristic-agenda* is only used locally. But it might be useful for GUI presentation
-                 (setf *heuristic-agenda* (examples 'heuristic))
-                 ;; TODO - is converting R to *rule* here the right thing?
-                 (loop for *rule* = (pop *heuristic-agenda*)
-                       unless *rule* return t
-                         when *abort-task?* return nil
+    ;; Every slot-name processing must return true, else we're aborting the task
+    ;; TODO - slot-name was originally p, if that happened to be visible elsewhere
+    (unless (every (lambda (slot-name)
+                     ;; TODO - this *heuristic-agenda* is only used locally, so it could be a loop initializer.
+                     ;;        But it might be useful in a public state for GUI presentation?
+                     (setf *heuristic-agenda* (examples 'heuristic))
+                     ;; TODO - is converting R to *rule* here the right thing?
+                     (loop for *rule* = (pop *heuristic-agenda*)
+                           when *abort-task?*
+                             return nil
+                           unless *rule*
+                             return t
                            do (cond
-                                ((null (funcall p *rule*)))
+                                ;; Next iteration heuristic, if it doesn't have this slot
+                                ((null (funcall slot-name *rule*)))
+                                ;; If this rule is subsumed by any other rule, ignore it and assumedly
+                                ;; process the one that subsumes this elsewhere in the loop
                                 ((subsumed-by *rule*))
-                                ((case (funcall (funcall p *rule*) task)
+                                ((case (funcall (funcall slot-name *rule*) task)
                                    ;; TODO - there is no NAborts in the code? how is the slot/accessor generated?
-                                   ;; TODO - HAvoid and HAvoidIfWorking set AbortTask to 'AbortTask!, but this code just checked for the literal value AbortTask so I don't know what ever triggers this case?
                                    (abort-task (put *rule* 'num-aborts
                                                     (1+ (or (num-aborts *rule*) 0)))
                                     (return nil))
-                                   (nil nil)
+                                   ((nil) nil)
                                    (otherwise
-                                    (and (cprin1 66 "  The " p " slot of heuristic " *rule* " " (abbrev *rule*)
+                                    (and (cprin1 66 "  The " slot-name " slot of heuristic " *rule* " " (abbrev *rule*)
                                                  " applies to the current task.~%")
                                          (or (and (is-alto)
-                                                  (snazzy-heuristic *rule* p))
+                                                  (snazzy-heuristic *rule* slot-name))
                                              t)
                                          (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
                                          (or (and (is-alto)
                                                   (snazzy-concept t))
                                              t)
                                          (cprin1 68 "       The Then Parts of the rule have been executed.~%~%")
-                                         (update-time-record 'overall-record))))))
-                       ))
-               (sub-slots 'if-task-parts))
-        (add-task-results 'termination 'aborted))
+                                         (update-time-record 'overall-record))))))))
+                   (sub-slots 'if-task-parts))
+      (add-task-results 'termination 'aborted))
     (cprin1 64 " The results of this task were: " *task-results* "~%")
     (cprin1 65 "~%")
     *task-results*))
@@ -2086,7 +2101,7 @@
   (let ((retval))
     ;; Store the elapsed time in a var
     (setf (symbol-value var)
-          ;; Track CPU time acruss this func
+          ;; Track CPU time across this func
           (let ((start (clock 2)))
             ;; Boolean return value of the function matters
             (setf retval (funcall func))
@@ -2271,9 +2286,10 @@
                ;; TODO - by just hitting maximum worth, this will always start with the exact same units in order?
                (push (work-on-unit (maximum uu #'worth)) units-focused-on)
                (and (is-alto)
-                    (null *agenda*)
+                    ;;(null *agenda*)
                     ;;(DSPRESET BitAgenda)
-                    (cprin1 (length uu) " concepts still must be focused on sometime"))))))
+                    ;;(cprin1 (length uu) " concepts still must be focused on sometime")
+                    )))))
 
 
 
