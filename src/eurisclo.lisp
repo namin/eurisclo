@@ -981,8 +981,9 @@
   (random-subset (best-subset l)))
 
 (defun random-choose (l)
-  (setf l (resolve-examples l))
-  (car (nth l (rand 1 (length l)))))
+  (and l
+       (setf l (resolve-examples l))
+       (car (nth l (rand 1 (length l))))))
 
 (defun random-subset (l)
   (setf l (resolve-examples l))
@@ -1286,9 +1287,12 @@
 (defun alg (u)
   "Search the ALG slot or sub-slots for a value"
   (or (getprop u 'alg)
-      (find-if (lambda (slot)
-                 (funcall slot u))
+      (let ((alg-type (find-if (lambda (s)
+                 (funcall s u))
                (sub-slots 'alg))))
+            (if alg-type
+              (funcall alg-type u)
+              nil))))
 
 (defun defn (u)
   ;; TODO - comment
