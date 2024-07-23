@@ -1338,7 +1338,7 @@
   generalizations (anything structure bag list set no-mult-ele-struc ord-struc)
   in-domain-of (o-set-insert o-set-delete o-set-equal o-set-intersect o-set-union o-set-difference)
   is-range-of (o-set-insert o-set-delete o-set-intersect o-set-union o-set-difference)
-  specializations (empty-struc non-empty struc)
+  specializations (empty-struc non-empty-struct)
   rarity (0 2 2)
   elim-slots (examples))
 
@@ -2940,7 +2940,7 @@
 
 (defunit the-second-of
   worth 500
-  isa (op pred math-op path-pred anything binary-op logic-op binary-pred)
+  isa (op pred math-op math-pred anything binary-op logic-op binary-pred)
   fast-alg (lambda (x y)
              (declare (ignore x))
              y)
