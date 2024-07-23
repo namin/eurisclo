@@ -1923,12 +1923,19 @@
 (defun work-on-unit (u)
   (let (*task-results*)
     (incf *task-num*)
-    (when (is-alto)
-      (snazzy-task (list (worth u)
+    (setf *task* (list (worth u)
                          u
                          'any
                          `("There are no great tasks on the Agenda now"
                            (,u "has the highest Worth of any concept I haven't focused on recently"))))
+    (setf *cur-pri* (extract-priority *task*))
+    (setf *cur-unit* (extract-unit-name *task*))
+    (setf *cur-slot* (extract-slot-name *task*))
+    (setf *new-values* nil)
+    (setf *cur-reasons* (extract-reasons *task*))
+    (setf *cur-sup* (cur-sup *task*))
+    (when (is-alto)
+      (snazzy-task)
       (snazzy-concept t u))
     (cprin1 10 "~%Task " *task-num* ": Focusing on " u "~%")
     (dolist (h (examples 'heuristic))
