@@ -681,10 +681,10 @@
       (/ (float (length (subset l p)))
          (float (length l)))))
 ;; TODO - what is OV supposed to be anyway?
-(defun get-a-bag (ov)
+(defun get-a-bag (&optional ov)
   (get-a-list ov))
 
-(defun get-a-list (ov)
+(defun get-a-list (&optional ov)
   "Return a list of 0-100 arbitrary Units."
   (declare (ignore ov)) ;; unused in original anyway?
   (loop for i from 0 to (rand 0 (square (rand 1 10)))
@@ -692,13 +692,13 @@
                              (get-a-struc))))
 
 ;; TODO - no guarantee of non-duplicate?
-(defun get-a-o-pair (ov)
+(defun get-a-o-pair (&optional ov)
   (first-two (get-a-list ov)))
 
-(defun get-a-o-set (ov)
+(defun get-a-o-set (&optional ov)
   (self-intersect (get-a-list ov)))
 
-(defun get-a-set (ov)
+(defun get-a-set (&optional ov)
   (self-intersect (get-a-list ov)))
 
 (defun get-a-struc (&optional ov)
