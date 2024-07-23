@@ -795,15 +795,16 @@
                                                      for a in args
                                                      always (funcall dt a))
                                                (let ((maybe-failed nil))
+                                                 (setf maybe-failed (handler-case (list (apply *alg-to-use* args) nil)
+                                                                                    (t (c)
+                                                                                       (list nil c))))
                                                  (union-prop *cur-unit* 'applics
                                                              (list args
                                                                    ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                                   (car (setf maybe-failed (ignore-errors
-                                                                                            (apply *alg-to-use* args)))))
+                                                                   (car maybe-failed))
                                                              nil
                                                              (setf maybe-failed (or (null maybe-failed)
-                                                                                    (eq (car maybe-failed)
-                                                                                        'failed))))
+                                                                                    (cadr maybe-failed))))
                                                  (cprin1 62 (if maybe-failed "-" "+"))))
                                        until (rule-taking-too-long)
                                        finally (setf n-tried j)))))
@@ -832,15 +833,16 @@
                                                     for a in args
                                                     always (funcall dt a))
                                               (let ((maybe-failed nil))
-                                                (union-prop *cur-unit* 'applics
-                                                            (list args
-                                                                  ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                                  (car (setf maybe-failed (ignore-errors
-                                                                                           (apply *alg-to-use* args)))))
-                                                            nil
-                                                            (setf maybe-failed (or (null maybe-failed)
-                                                                                   (eq (car maybe-failed)
-                                                                                       'failed))))
+                                                (setf maybe-failed (handler-case (list (apply *alg-to-use* args) nil)
+                                                                                    (t (c)
+                                                                                       (list nil c))))
+                                                 (union-prop *cur-unit* 'applics
+                                                             (list args
+                                                                   ;; TODO - was (ERRORSET .. 'NOBREAK)
+                                                                   (car maybe-failed))
+                                                             nil
+                                                             (setf maybe-failed (or (null maybe-failed)
+                                                                                    (cadr maybe-failed))))
                                                 (cprin1 62 (if maybe-failed "-" "+"))))
                                       until (rule-taking-too-long)
                                       finally (setf n-tried j))))
