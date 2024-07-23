@@ -1298,9 +1298,12 @@
   ;; TODO - comment
   (or (getprop u 'defn)
       ;; Probe all the sub-slots of DEFN to find something
-      (find-if (lambda (s)
+      (let ((defn-type (find-if (lambda (s)
                  (funcall s u))
-               (sub-slots 'defn))
+               (sub-slots 'defn))))
+            (if defn-type
+              (funcall defn-type u)
+              nil))
       ;; TODO - was (isa u 'category), which is a misuse passing an extra param, which IL ignores
       ;;        It's just returning the isa list, which will be non-nil on everything but raw
       ;;        numbers, because everything is an Anything.
