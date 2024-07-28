@@ -1047,9 +1047,7 @@
             (put name 'worth 500)
             name))
     (define-if-slot name)
-    (and nold
-         (symbolp nold)
-         (functionp nold)
+    (and (functionp nold)
          (not (functionp name))
          ;;(movd nold name t) ;; T = if the src of the copy is a sexpr, cons up a new copy with the move
          (setf (symbol-function name) (symbol-function nold))
