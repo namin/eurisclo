@@ -228,7 +228,7 @@
   isa (math-concept math-obj anything category type-of-structure)
   generalizations (structure anything set list bag mult-ele-struc o-set
                              no-mult-ele-struc ord-struc un-ord-struc pair o-pair)
-  fast-defn #'consp
+  fast-defn consp
   examples nil)
 
 (defunit empty-struc
@@ -236,7 +236,7 @@
   isa (math-concept math-obj anything category type-of-structure)
   generalizations (structure anything set list bag mult-ele-struc o-set
                              no-mult-ele-struc ord-struc un-ord-struc)
-  fast-defn #'null
+  fast-defn null
   elim-slots (examples))
 
 (defunit set-of-sets
@@ -274,7 +274,7 @@
   generalizations (anything)
   worth 500
   isa (anything category repr-concept)
-  fast-defn #'atom
+  fast-defn atom
   specializations (truth-value))
 
 (defunit implies
@@ -296,7 +296,7 @@
   domain (anything)
   range (bit)
   elim-slots (applics)
-  fast-alg #'not)
+  fast-alg not)
 
 (defunit logic-op
   generalizations (math-concept op math-op anything struc-op)
@@ -340,7 +340,7 @@
   is-range-of (invert-op))
 
 (defunit restrict
-  worth 600
+  worth 999;;600
   isa (math-concept math-op op anything unary-op)
   arity 1
   domain (op)
@@ -448,7 +448,7 @@
 (defunit memb
   worth 500
   isa (math-concept math-op op math-pred pred anything binary-op binary-pred)
-  fast-alg #'memb ;; original implementation: (lambda (x y) (memb x y))
+  fast-alg memb ;; original implementation: (lambda (x y) (memb x y))
   arity 2
   domain (anything structure)
   range (bit)
@@ -463,7 +463,7 @@
 (defunit member
   worth 500
   isa (math-concept math-op math-pred pred anything binary-op binary-pred)
-  fast-alg #'member ;; original implementation: (lambda (x y) (member x y))
+  fast-alg member ;; original implementation: (lambda (x y) (member x y))
   arity 2
   domain (anything structure)
   range (bit)
@@ -526,7 +526,7 @@
   domain (ord-struc)
   range (anything)
   elim-slots (applics)
-  fast-alg #'cdr)
+  fast-alg cdr)
 
 (defunit third-ele
   worth 500
@@ -535,7 +535,7 @@
   domain (ord-struc)
   range (anything)
   elim-slots (applics)
-  fast-alg #'caddr)
+  fast-alg caddr)
 
 (defunit second-ele
   worth 500
@@ -544,7 +544,7 @@
   domain (ord-struc)
   range (anything)
   elim-slots (applics)
-  fast-alg #'cadr
+  fast-alg cadr
   rarity (0.85 17 3))
 
 (defunit first-ele
@@ -554,7 +554,7 @@
   domain (ord-struc)
   range (anything)
   elim-slots (applics)
-  fast-alg #'car)
+  fast-alg car)
 
 (defunit reverse-o-pair
   worth 500
@@ -984,7 +984,7 @@
   domain (o-set o-set)
   range (o-set)
   elim-slots (applics)
-  fast-alg #'set-difference
+  fast-alg set-difference
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) nil)
                         ((member (car s1) s2)
@@ -1018,7 +1018,7 @@
   domain (set set)
   range (set)
   elim-slots (applics)
-  fast-alg #'set-difference
+  fast-alg set-difference
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) nil)
                         ((member (car s1) s2)
@@ -1058,7 +1058,7 @@
   domain (list list)
   range (list)
   elim-slots (applics)
-  fast-alg #'append
+  fast-alg append
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) s2)
                         (t (cons (car s1)
@@ -1112,7 +1112,7 @@
   domain (o-set o-set)
   range (o-set)
   elim-slots (applics)
-  fast-alg #'o-set-intersect
+  fast-alg o-set-intersect
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) nil)
                         ((member (car s1) s2)
@@ -1153,7 +1153,7 @@
   domain (set set)
   range (set)
   elim-slots (applics)
-  fast-alg #'set-union
+  fast-alg set-union
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) s2)
                         ((member (car s1) s2)
@@ -1169,7 +1169,7 @@
   domain (set set)
   range (set)
   elim-slots (applics)
-  fast-alg #'set-intersect
+  fast-alg set-intersect
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) nil)
                         ((member (car s1) s2)
@@ -1194,7 +1194,7 @@
   range (anything)
   elim-slots (applics)
   specializations (list-equal o-set-equal)
-  fast-alg #'equal)
+  fast-alg equal)
 
 (defunit bag-equal
   worth 500
@@ -1232,7 +1232,7 @@
                                 (consp s2)
                                 (equal (car s1) (car s2))
                                 (run-alg 'list-equal (cdr s1) (cdr s2))))))
-  fast-alg #'equal
+  fast-alg equal
   is-a-int (binary-pred)
   rarity (0.1 1 9))
 
@@ -1251,7 +1251,7 @@
                                 (consp s2)
                                 (equal (car s1) (car s2))
                                 (run-alg 'o-set-equal (cdr s1) (cdr s2))))))
-  fast-alg #'equal
+  fast-alg equal
   is-a-int (binary-pred)
   rarity (0.1 1 9))
 
@@ -1288,7 +1288,7 @@
   isa (math-concept math-obj anything category type-of-structure)
   specializations (set o-set empty-struc non-empty-struc)
   generalizations (structure anything)
-  nec-defn #'no-repeats-in)
+  nec-defn no-repeats-in)
 
 (defunit o-set-delete
   worth 500
@@ -1303,7 +1303,7 @@
                          (cdr s))
                         (t (cons (car s)
                                  (run-alg 'o-set-delete x (cdr s))))))
-  fast-alg #'remove
+  fast-alg remove
   generalizations (struc-delete))
 
 (defunit o-set-op
@@ -1385,7 +1385,7 @@
   generalizations (structure anything)
   in-domain-of (mult-ele-struc-delete-1 mult-ele-struc-insert)
   is-range-of (mult-ele-struc-delete-1 mult-ele-struc-insert)
-  suf-defn #'repeats-in)
+  suf-defn repeats-in)
 
 (defunit bag-delete-1
   worth 500
@@ -1415,7 +1415,7 @@
                          (run-alg 'bag-delete x (cdr s)))
                         (t (cons (car s)
                                  (run-alg 'bag-delete x (cdr s))))))
-  fast-alg #'remove
+  fast-alg remove
   generalizations (struc-delete))
 
 (defunit bag-op
@@ -1432,7 +1432,7 @@
   domain (anything bag)
   range (bag)
   elim-slots (applics)
-  fast-alg #'cons
+  fast-alg cons
   generalizations (struc-insert mult-ele-struc-insert))
 
 (defunit bag
@@ -1441,7 +1441,7 @@
   generator ((nil)
              (get-a-list)
              (old))
-  fast-defn #'listp
+  fast-defn listp
   recursive-defn (lambda (s)
                    (cond ((not (consp s))
                           (eq s nil))
@@ -1475,7 +1475,7 @@
   domain (anything list)
   range (list)
   elim-slots (applics)
-  fast-alg #'remove
+  fast-alg remove
   recursive-alg (lambda (x s)
                   (cond ((null s) nil)
                         ((equal x (car s))
@@ -1490,7 +1490,7 @@
   generator ((nil)
              (get-a-list)
              (old))
-  fast-defn #'listp
+  fast-defn listp
   recursive-defn (lambda (s)
                    (cond ((not (consp s))
                           ;; Checking for proper list termination
@@ -1510,7 +1510,7 @@
   domain (anything list)
   range (list)
   elim-slots (applics)
-  fast-alg #'cons
+  fast-alg cons
   generalizations (struc-insert mult-ele-struc-insert))
 
 (defunit list-op
@@ -1534,7 +1534,7 @@
                          (cdr s))
                         (t (cons (car s)
                                  (run-alg 'set-delete x (cdr s))))))
-  fast-alg #'remove
+  fast-alg remove
   generalizations (struc-delete))
 
 (defunit set-insert
@@ -1793,7 +1793,7 @@
 (defunit best-choose
   worth 500
   isa (math-concept math-op op set-op anything struc-op unary-op)
-  fast-alg #'best-choose
+  fast-alg best-choose
   domain (set)
   range (anything)
   generalizations (random-choose good-choose)
@@ -1803,7 +1803,7 @@
 (defunit best-subset
   worth 500
   isa (math-concept math-op op set-op anything struc-op unary-op)
-  fast-alg #'best-subset
+  fast-alg best-subset
   domain (set)
   range (set)
   generalizations (random-subset good-subset)
@@ -2024,7 +2024,7 @@
 (defunit eq
   worth 507
   isa (math-concept math-op op math-pred pred anything binary-op binary-pred)
-  fast-alg #'eq
+  fast-alg eq
   arity 2
   domain (anything anything)
   range (bit)
@@ -2036,7 +2036,7 @@
 (defunit equal
   worth 502
   isa (math-concept math-op op math-pred pred anything binary-op binary-pred)
-  fast-alg #'equal
+  fast-alg equal
   arity 2
   domain (anything anything)
   range (bit)
@@ -2125,7 +2125,7 @@
 (defunit good-choose
   worth 500
   isa (math-concept math-op op set-op anything struc-op unary-op)
-  fast-alg #'good-choose
+  fast-alg good-choose
   domain (set)
   range (anything)
   generalizations (random-choose)
@@ -2136,7 +2136,7 @@
 (defunit good-subset
   worth 500
   isa (math-concept math-op op set-op anything struc-op unary-op)
-  fast-alg #'good-subset
+  fast-alg good-subset
   domain (set)
   range (set)
   generalizations (random-subset)
@@ -2171,7 +2171,7 @@
   worth 500
   isa (math-concept math-op op math-pred pred anything num-op binary-op binary-pred)
   ;; OPTIMIZATION - a version with fixnum declarations, and fixed arity?
-  fast-alg #'=
+  fast-alg =
   arity 2
   domain (nnumber nnumber)
   range (bit)
@@ -2183,7 +2183,7 @@
 (defunit igeq
   worth 509
   isa (math-concept math-op op math-pred pred anything num-op binary-op binary-pred)
-  fast-alg #'>= ;; OPTIMIZATION - fixed arity, fixnum decls
+  fast-alg >= ;; OPTIMIZATION - fixed arity, fixnum decls
   arity 2
   domain (nnumber nnumber)
   range (bit)
@@ -2194,7 +2194,7 @@
 (defunit igreaterp
   worth 501
   isa (math-concept math-op op math-pred pred anything num-op binary-op binary-pred)
-  fast-alg #'> ;; OPTIMIZATION
+  fast-alg > ;; OPTIMIZATION
   arity 2
   domain (nnumber nnumber)
   range (bit)
@@ -2205,7 +2205,7 @@
 (defunit ileq
   worth 500
   isa (math-concept math-op op math-pred pred anything num-op binary-op binary-pred)
-  fast-alg #'<=
+  fast-alg <=
   arity 2
   domain (nnumber nnumber)
   range (bit)
@@ -2216,7 +2216,7 @@
 (defunit ilessp
   worth 500
   isa (math-concept math-op op math-pred pred anything num-op binary-op binary-pred)
-  fast-alg #'<
+  fast-alg <
   arity 2
   domain (nnumber nnumber)
   range (bit)
@@ -2842,7 +2842,7 @@
 (defunit structure
   worth 500
   isa (math-concept math-obj anything category)
-  fast-defn #'listp
+  fast-defn listp
   recursive-defn (lambda (s)
                    (cond ((not (consp s))
                           (eq s nil))

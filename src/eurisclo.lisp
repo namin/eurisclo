@@ -349,8 +349,14 @@
 ;;;;------------------------------------
 ;;;; Interlisp compatibility functions
 
+;; http://clhs.lisp.se/Body/f_symb_1.htm
+(defun symbol-function-or-nil (symbol)
+  (if (and (fboundp symbol) 
+           (not (macro-function symbol))
+           (not (special-operator-p symbol)))
+      (symbol-function symbol)))
+       
 ;; TODO - remove the ones with CL analogs, port the usage sites to idiomatic CL
-
 (declaim (inline fixp))
 (defun fixp (x)
   "Fixnum/integer test."
@@ -1050,9 +1056,10 @@
     (and (functionp nold)
          (not (functionp name))
          ;;(movd nold name t) ;; T = if the src of the copy is a sexpr, cons up a new copy with the move
-         (setf (symbol-function name) (symbol-function nold))
+         ;;(setf (symbol-function name) (symbol-function nold))
          ;; Note that these MOVD forms are never executed; I wonder if RLL does use them, though
-         (push `(movd ',nold ',name) *move-defns*))))
+         ;;(push `(movd ',nold ',name) *move-defns*)
+         )))
 
 
 (defun kill-unit (u)
@@ -1248,7 +1255,7 @@
        (comp s (getd s))))
   
   ;; CL code:
-  (unless (fboundp s)
+  (unless (or (fboundp s) (functionp s))
     (setf (symbol-function s) (lambda (unit)
                                 (getprop unit s)))))
 
@@ -2018,16 +2025,17 @@
 
 (defun run-alg (f &rest args)
   (let ((val (cond
-               ((alg f) (apply (alg f) args))
                ((functionp f) (apply f args))
+               ((and (symbolp f) (symbol-function-or-nil f)) (apply f args))
+               ((alg f) (apply (alg f) args))
                (t nil))))
     (accumulate-rarity f (not (eq val 'failed)))
     val))
 
 (defun run-defn (f &rest args)
   (let ((val (cond
-               ((defn f) (apply (defn f) args))
                ((functionp f) (eval (cons f args)))
+               ((defn f) (apply (defn f) args))
                (t nil))))
     (accumulate-rarity f (not (eq val 'failed)))
     val))
