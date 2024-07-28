@@ -69,6 +69,13 @@
                   undefined-pred unit unit-op- unitized-alg unitized-defn worth los1 los2 los3 los4
                   los5 los6 los7 win1))
 
+(defun compile-report (source)
+  (format t "compilation of ~a~%" source)
+  (multiple-value-bind (f warnings-p failure-p)
+      (compile nil source)
+    (when (or warnings-p failure-p)
+      (format t "compilation warning/errors for ~a: ~a / ~a~%" source warnings-p failure-p))
+    f))
 
 ;; TODO - break these lexically out into topical groups
 (defmacro defunit (&rest rest)
@@ -364,9 +371,9 @@
                                              '(u v w x y z z2 z3 z4 z5))))
                           (put nam 'domain newdom)
                           (put nam 'range (copy (range f)))
-                          (put nam 'unitized-alg (compile nil
+                          (put nam 'unitized-alg (compile-report
                                                           `(lambda ,fargs
-                                                             (cons 'run-alg #',f ,@fargs)))))
+                                                             (list 'run-alg #',f ,@fargs)))))
                         (put nam 'extensions (list f))
                         (put nam 'elim-slots '(applics))
                         (put nam 'creditors '(restrict))
@@ -617,7 +624,7 @@
                                                      mu)
                                                     (t (cprin1 21 "~% It might be nice to have a unit called " mu "~%")
                                                        s)))))
-                      (put nam 'unitized-alg (compile nil
+                      (put nam 'unitized-alg (compile-report
                                                       (subst f 'f '(lambda (s)
                                                                     (mapappend s (lambda (e)
                                                                                    (run-alg 'f e)))))
@@ -660,7 +667,7 @@
                                                     (cprin1 21 "~% It might be nice to have a unit called "
                                                             mu "~%")
                                                     s)))))
-                      (put nam 'unitized-alg (compile nil
+                      (put nam 'unitized-alg (compile-report
                                                        (subst f 'f '(lambda (s s2)
                                                               (mapappend s (lambda (e)
                                                                              (run-alg 'f e s2)))))))
@@ -709,7 +716,7 @@
                       (put nam 'domain (list s))
                       (put nam 'range (copy (range f)))
                       (put nam 'unitized-alg
-                           (compile nil
+                           (compile-report
                                     (subst f 'f '(lambda (s v)
                                          ;; TODO - idiomize this loop, is this a REDUCE?
                                          (setf v (car s))
@@ -752,7 +759,7 @@
                       (put nam 'domain (list s s2))
                       (put nam 'range (copy (range f)))
                       (put nam 'unitized-alg
-                           (compile nil
+                           (compile-report
                                     (subst f 'f '(lambda (s s2 v)
                                                            (setf v (car s))
                                                            (mapc (lambda (e)
@@ -821,7 +828,7 @@
                                                (t (cprin1 21 "~% It might be nice to have a unit called " mu "~%")
                                                   s)))))
                       (put nam 'unitized-alg
-                           (compile nil
+                           (compile-report
                                     (subst f 'f '(lambda (s s2)
                                                            (mapcar (lambda (e)
                                                                      (run-alg 'f e s2))
@@ -893,7 +900,7 @@
                                                     (t (cprin1 21 "~% It might be nice to have a unit called " mu "~%")
                                                        s)))))
                       (put nam 'unitized-alg
-                           (compile nil
+                           (compile-report
                                     (subst f 'f '(lambda (s)
                                                            (mapcar (lambda (e)
                                                                      (run-alg 'f e))
@@ -943,7 +950,7 @@
                             (put nam 'domain newdom)
                             (put nam 'range (copy (range f)))
                             (put nam 'unitized-alg
-                                 (compile nil
+                                 (compile-report
                                           `(lambda ,fargs
                                                       (run-alg ',f ,@newargs))))
                             (put nam 'elim-slots '(applics))
