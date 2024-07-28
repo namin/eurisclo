@@ -113,6 +113,22 @@
 (defvar *conjectures* nil)
 (defvar *deleted-units* nil)
 
+;; TODO - comments
+(defvar *editpx*) ;; parameters to EU function
+(defvar *last-edited*) ;; 
+
+
+
+
+
+
+
+
+(defvar *have-genl* nil
+  "Units from generalize-1-lisp-expr which already have generalizations")
+(defvar *are-units* nil
+  "List of units mentioned in the body of generalize-1-lisp-expr")
+
 ;; Replicating the IL system provided SYSPROPS just for yuks.  Probably unnecessary, but documenting it
 ;; These are all the system properties that can be on symbols, which eurisko needs to skip
 (defparameter *sysprops* '(prototype vartype newcom whenfiled whenunfiled getdef nulldef deldef putdef whenchanged hasdef editdef canfiledef filegetdef filepkgcontents prettytype delfromprettycom addtoprettycom altomacro macro bytemacro dmacro
@@ -1031,8 +1047,10 @@
             (put name 'worth 500)
             name))
     (define-if-slot name)
-    (and (symbol-function nold)
-         (not (symbol-function name))
+    (and nold
+         (symbolp nold)
+         (functionp nold)
+         (not (functionp name))
          ;;(movd nold name t) ;; T = if the src of the copy is a sexpr, cons up a new copy with the move
          (setf (symbol-function name) (symbol-function nold))
          ;; Note that these MOVD forms are never executed; I wonder if RLL does use them, though
@@ -1209,7 +1227,7 @@
 (defun define-if-slot (s)
   ;; TODO - comment
   (when (and (slotp s)
-             (not (symbol-function s)))
+             (not (functionp s)))
     (push s *slots*)
     (define-slot s))
   s)
@@ -2003,7 +2021,7 @@
 (defun run-alg (f &rest args)
   (let ((val (cond
                ((alg f) (apply (alg f) args))
-               ((symbol-function f) (apply f args))
+               ((functionp f) (apply f args))
                (t nil))))
     (accumulate-rarity f (not (eq val 'failed)))
     val))
@@ -2011,20 +2029,21 @@
 (defun run-defn (f &rest args)
   (let ((val (cond
                ((defn f) (apply (defn f) args))
-               ((symbol-function f) (eval (cons f args)))
+               ((functionp f) (eval (cons f args)))
                (t nil))))
     (accumulate-rarity f (not (eq val 'failed)))
     val))
 
 (defun accumulate-rarity (unit success?)
   (let ((rarity (rarity unit)))
-    (if success?
-        (incf (second rarity))
-        (incf (third rarity)))
-    ;; Rarity = num-successes / total-calls
-    (setf (first rarity) (floor (float (second rarity))
-                                (+ (second rarity)
-                                   (third rarity))))))
+    (when rarity
+      (if success?
+          (incf (second rarity))
+          (incf (third rarity)))
+      ;; Rarity = num-successes / total-calls
+      (setf (first rarity) (floor (float (second rarity))
+                                  (+ (second rarity)
+                                     (third rarity)))))))
 
 
 
@@ -2572,21 +2591,6 @@
 
 
 
-;; TODO - comments
-(defvar *editpx*) ;; parameters to EU functino
-(defvar *last-edited*) ;; 
-
-
-
-
-
-
-
-
-(defvar *have-genl* nil
-  "Units from generalize-1-lisp-expr which already have generalizations")
-(defvar *are-units* nil
-  "List of units mentioned in the body of generalize-1-lisp-expr")
 
 
 

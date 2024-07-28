@@ -286,8 +286,8 @@
   elim-slots (applics)
   fast-alg (lambda (x y)
              (or (null x) y))
-  unitized-alg (lambda (x y)
-                 (run-alg 'or (run-alg 'not x) y)))
+  unitized-alg #'(lambda (x y)
+                   (run-alg 'or (run-alg 'not x) y)))
 
 (defunit not
   worth 500
@@ -364,8 +364,9 @@
                                              '(u v w x y z z2 z3 z4 z5))))
                           (put nam 'domain newdom)
                           (put nam 'range (copy (range f)))
-                          (put nam 'unitized-alg `(lambda ,fargs
-                                                    (cons 'run-alg #',f ,@fargs))))
+                          (put nam 'unitized-alg (compile nil
+                                                          `(lambda ,fargs
+                                                             (cons 'run-alg #',f ,@fargs)))))
                         (put nam 'extensions (list f))
                         (put nam 'elim-slots '(applics))
                         (put nam 'creditors '(restrict))
@@ -616,9 +617,11 @@
                                                      mu)
                                                     (t (cprin1 21 "~% It might be nice to have a unit called " mu "~%")
                                                        s)))))
-                      (put nam 'unitized-alg (subst f 'f '(lambda (s)
-                                                           (mapappend s (lambda (e)
-                                                                          (run-alg 'f e))))))
+                      (put nam 'unitized-alg (compile nil
+                                                      (subst f 'f '(lambda (s)
+                                                                    (mapappend s (lambda (e)
+                                                                                   (run-alg 'f e)))))
+                                                      ))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors '(parallel-join))
                       (add-inv nam)
@@ -657,9 +660,10 @@
                                                     (cprin1 21 "~% It might be nice to have a unit called "
                                                             mu "~%")
                                                     s)))))
-                      (put nam 'unitized-alg (subst f 'f '(lambda (s s2)
-                                                           (mapappend s (lambda (e)
-                                                                          (run-alg 'f e s2))))))
+                      (put nam 'unitized-alg (compile nil
+                                                       (subst f 'f '(lambda (s s2)
+                                                              (mapappend s (lambda (e)
+                                                                             (run-alg 'f e s2)))))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors 'parallel-replace-2)
                       (add-inv nam)
@@ -705,13 +709,14 @@
                       (put nam 'domain (list s))
                       (put nam 'range (copy (range f)))
                       (put nam 'unitized-alg
-                           (subst f 'f '(lambda (s v)
+                           (compile nil
+                                    (subst f 'f '(lambda (s v)
                                          ;; TODO - idiomize this loop, is this a REDUCE?
                                          (setf v (car s))
                                          (mapc (lambda (e)
                                                  (setf v (run-alg 'f v e)))
                                           (cdr s))
-                                         v)))
+                                         v))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors 'repeat)
                       (add-inv nam)
@@ -746,12 +751,14 @@
                       (put nam 'arity 2)
                       (put nam 'domain (list s s2))
                       (put nam 'range (copy (range f)))
-                      (put nam 'unitized-alg (subst f 'f '(lambda (s s2 v)
+                      (put nam 'unitized-alg
+                           (compile nil
+                                    (subst f 'f '(lambda (s s2 v)
                                                            (setf v (car s))
                                                            (mapc (lambda (e)
                                                                    (setf v (run-alg 'f v s2 e)))
                                                             (cdr s))
-                                                           v)))
+                                                           v))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors '(repeat2))
                       (add-inv nam)
@@ -813,10 +820,12 @@
                                                 mu)
                                                (t (cprin1 21 "~% It might be nice to have a unit called " mu "~%")
                                                   s)))))
-                      (put nam 'unitized-alg (subst f 'f '(lambda (s s2)
+                      (put nam 'unitized-alg
+                           (compile nil
+                                    (subst f 'f '(lambda (s s2)
                                                            (mapcar (lambda (e)
                                                                      (run-alg 'f e s2))
-                                                            s))))
+                                                            s)))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors '(parallel-replace-2))
                       (add-inv nam)
@@ -883,10 +892,12 @@
                                                      mu)
                                                     (t (cprin1 21 "~% It might be nice to have a unit called " mu "~%")
                                                        s)))))
-                      (put nam 'unitized-alg (subst f 'f '(lambda (s)
+                      (put nam 'unitized-alg
+                           (compile nil
+                                    (subst f 'f '(lambda (s)
                                                            (mapcar (lambda (e)
                                                                      (run-alg 'f e))
-                                                            s))))
+                                                            s)))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors '(parallel-replace))
                       (add-inv nam)
@@ -931,8 +942,10 @@
                                         (cdr (nth fargs (cadr coargs)))))
                             (put nam 'domain newdom)
                             (put nam 'range (copy (range f)))
-                            (put nam 'unitized-alg `(lambda ,fargs
-                                                      (run-alg ',f ,@newargs)))
+                            (put nam 'unitized-alg
+                                 (compile nil
+                                          `(lambda ,fargs
+                                                      (run-alg ',f ,@newargs))))
                             (put nam 'elim-slots '(applics))
                             (put nam 'creditors '(coalesce))
                             (put nam 'isa (append (isa nam)
@@ -1059,7 +1072,7 @@
   domain (o-set o-set)
   range (o-set)
   elim-slots (applics)
-  fast-alg #'set-union
+  fast-alg set-union
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) s2)
                         ((member (car s1) s2)
@@ -2407,7 +2420,7 @@
   isa (math-concept math-obj anything category)
   specializations (prime-num perf-num perf-square odd-num even-num)
   generator ((0) (1+) (old))
-  fast-defn #'fixp
+  fast-defn (lambda (n) (fixp n))
   in-domain-of (divisors-of multiply add successor square ieqp ileq igeq ilessp igreaterp)
   is-range-of (multiply add successor)
   elim-slots (examples)
@@ -2572,7 +2585,7 @@
 (defunit random-choose
   worth 507
   isa (math-concept math-op op set-op anything struc-op unary-op)
-  fast-alg #'random-choose
+  fast-alg random-choose
   domain (set)
   range (anything)
   specializations (good-choose best-choose)
@@ -2582,7 +2595,7 @@
 (defunit random-subset
   worth 520
   isa (math-concept math-op op set-op anything struc-op unary-op)
-  fast-alg #'random-subset
+  fast-alg random-subset
   domain (set)
   range (set)
   specializations (best-subset good-subset)
@@ -2883,7 +2896,7 @@
                         (t (and (consp s1)
                                 (member (car s1) s2)
                                 (run-alg 'subsetp (cdr s1) s2)))))
-  fast-alg #'is-subset-of)
+  fast-alg is-subset-of)
 
 (defunit subsumed-by
   worth 300
