@@ -1344,7 +1344,7 @@
 (defunit o-set
   worth 500
   isa (math-concept math-obj anything category type-of-structure)
-  generator ((nul)
+  generator ((nil)
              (get-a-set)
              (old))
   fast-defn (lambda (s)
