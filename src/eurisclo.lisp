@@ -785,10 +785,11 @@
 
 (defun no-repeats-in (l)
   "No EQUAL duplicates on the list"
-  (loop for sublist on l
-        when (member (car sublist) (cdr sublist))
-          return nil
-        finally (return t)))
+  (and (listp l)
+       (loop for sublist on l
+             when (member (car sublist) (cdr sublist))
+               return nil
+             finally (return t))))
 
 (defun random-pair (l rel)
   (random-choose (all-pairs l rel)))

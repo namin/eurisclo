@@ -2707,7 +2707,7 @@
                              set-union set-difference restric-random-subset-2-1
                              restric-random-subset-1-2)
   generalizations (anything structure bag list no-mult-ele-struc un-ord-struc)
-  specializations (o-set empty-struc non-empty-struc)
+  specializations (o-set empty-struc non-empty-struc set-of-sets)
   rarity (0 2 2)
   elim-slots (examples))
 
