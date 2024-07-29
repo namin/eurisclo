@@ -26,4 +26,4 @@ Here is a [diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:workin
 
 * Once you have the program running, you will probably encounter some kind of error you will need to debug. Enjoy!
 
-License: (c) 2023-2024 White Flame. Do not use it, in any way, for any purpose. Don't even read it. Yet.
+License: (c) 2023-2024 White Flame, Angle, Nada Amin.
