@@ -349,6 +349,14 @@
 ;;;;------------------------------------
 ;;;; Interlisp compatibility functions
 
+(defun compile-report (source)
+  (format t "compilation of ~a~%" source)
+  (multiple-value-bind (f warnings-p failure-p)
+      (compile nil source)
+    (when (or warnings-p failure-p)
+      (format t "compilation warning/errors for ~a: ~a / ~a~%" source warnings-p failure-p))
+    f))
+
 ;; http://clhs.lisp.se/Body/f_symb_1.htm
 (defun symbol-function-or-nil (symbol)
   (if (and (fboundp symbol) 
@@ -1091,7 +1099,8 @@
                                            (lambda (su)
                                              (interestingness su looked-thru)))))
      ;; ORIG: this must be the initial call
-     `(lambda (u) (or ,@looked-thru)))
+     (compile-report
+      `(lambda (u) (or ,@looked-thru))))
     (t
      ;; ORIG: There were no Interestingness predicates anywhere along my ancestry
      nil)))
@@ -1251,7 +1260,7 @@
     ((exprp s) (comp s (getd s) t))
     ;; TODO - S is KWOTEd
     ;; Define the function which getprops the named slot
-    (t (putd s `(lambda (u) (getprop u ',s)))
+    (t (putd s (compile-report `(lambda (u) (getprop u ',s))))
        (comp s (getd s))))
   
   ;; CL code:
@@ -1705,7 +1714,9 @@
                                    z))
                              x))
     ((eq (car x) 'lambda)
-     `(lambda ,(cadr x) ,@ (mapcar #'specialize-1-lisp-fn (cddr x))))
+     (compile-report
+     `(lambda ,(cadr x) ,@ (mapcar #'specialize-1-lisp-fn (cddr x)))
+     ))
     (t x)))
 
 (defun specialize-lisp-pred (x)
@@ -1720,7 +1731,7 @@
                                    (specialize-lisp-pred z)
                                    z))
                              x))
-    ((eq (car x) 'lambda) `(lambda ,(cadr x) ,@(mapcar #'specialize-1-lisp-pred (cddr x))))
+    ((eq (car x) 'lambda) (compile-report `(lambda ,(cadr x) ,@(mapcar #'specialize-1-lisp-pred (cddr x)))))
     (t x)))
 
 (defun specialize-list (x)

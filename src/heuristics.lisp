@@ -1671,15 +1671,16 @@
                                (put new-unit 'generalizations (cons 'list
                                                                     (copy (generalizations 'list))))
                                (put new-unit 'isa (copy (isa 'list)))
-                               (put new-unit 'fast-defn `(lambda (l)
-                                                           (and (run-defn 'list l)
-                                                                (eq (length l)
-                                                                    ,(length (domain f)))
-                                                                ,@(mapcar (lambda (d cr)
-                                                                            `(run-defn ',d ,(list cr 'l)))
-                                                                          (domain f)
-                                                                          '(first second third fourth fifth sixth seventh))
-                                                                (apply-alg ',f l))))
+                               (put new-unit 'fast-defn (compile-report
+                                                         `(lambda (l)
+                                                             (and (run-defn 'list l)
+                                                                  (eq (length l)
+                                                                      ,(length (domain f)))
+                                                                  ,@(mapcar (lambda (d cr)
+                                                                              `(run-defn ',d ,(list cr 'l)))
+                                                                            (domain f)
+                                                                            '(first second third fourth fifth sixth seventh))
+                                                                  (apply-alg ',f l)))))
                                (add-inv new-unit))
                              t))
 
@@ -1717,15 +1718,16 @@
                                (put new-unit 'generalizations (cons 'list
                                                                     (copy (generalizations 'list))))
                                (put new-unit 'isa (copy (isa 'list)))
-                               (put new-unit 'fast-defn `(lambda (l)
+                               (put new-unit 'fast-defn (compile-report
+                                                         `(lambda (l)
                                                            (and (run-defn 'list l)
                                                                 (eq (length l)
                                                                     ,(length (domain f)))
                                                                 ,@(mapcar (lambda (d cr)
-                                                                            `(run-defn ',d (,cr 'l)))
+                                                                            `(run-defn ',d (,cr l)))
                                                                           (domain f)
                                                                           '(first second third forth fifth sixth seventh))
-                                                                (memb (apply-alg ',f l) *failure-list*))))
+                                                                (memb (apply-alg ',f l) *failure-list*)))))
                                (add-inv new-unit))
                              t))
 
@@ -1764,8 +1766,9 @@
                                (put new-unit 'generalizations (cons '(car (domain f))
                                                                     (copy (generalizations '(car (domain f))))))
                                (put new-unit 'isa (copy (isa '(car (domain f)))))
-                               (put new-unit 'fast-defn `(lambda (e)
-                                                           (run-defn ,(car (domain f)) e)))
+                               (put new-unit 'fast-defn (compile-report
+                                                         `(lambda (e)
+                                                           (run-defn ,(car (domain f)) e))))
                                (add-inv new-unit))
                              t))
 
@@ -1806,9 +1809,10 @@
                                (put new-unit 'generalizations (cons '(car (domain f))
                                                                     (copy (generalizations '(car (domain f))))))
                                (put new-unit 'isa (copy (isa '(car (domain f)))))
-                               (put new-unit 'fast-defn `(lambda (e)
+                               (put new-unit 'fast-defn (compile-report
+                                                         `(lambda (e)
                                                            (and (run-defn ,(car (domain f)) e)
-                                                                (memb (run-alg ,f e) *failure-list*))))
+                                                                (memb (run-alg ,f e) *failure-list*)))))
                                (add-inv new-unit))
                              t))
 (defheuristic h29

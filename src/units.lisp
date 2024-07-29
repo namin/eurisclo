@@ -69,14 +69,6 @@
                   undefined-pred unit unit-op- unitized-alg unitized-defn worth los1 los2 los3 los4
                   los5 los6 los7 win1))
 
-(defun compile-report (source)
-  (format t "compilation of ~a~%" source)
-  (multiple-value-bind (f warnings-p failure-p)
-      (compile nil source)
-    (when (or warnings-p failure-p)
-      (format t "compilation warning/errors for ~a: ~a / ~a~%" source warnings-p failure-p))
-    f))
-
 ;; TODO - break these lexically out into topical groups
 (defmacro defunit (&rest rest)
   `(putprops ,@rest))
@@ -1880,8 +1872,10 @@
                       (put nam 'domain (append (copy (domain f))
                                                (cdr (domain g))))
                       (put nam 'range (copy (range g)))
-                      (put nam 'unitized-alg `(lambda ,(nconc (copy fargs) (copy gargs))
-                                                (run-alg ,g (run-alg ,f ,@fargs) ,@gargs)))
+                      (put nam 'unitized-alg
+                           (compile-report
+                            `(lambda ,(nconc (copy fargs) (copy gargs))
+                              (run-alg ,g (run-alg ,f ,@fargs) ,@gargs))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors '(compose))
                       (put nam 'isa (append (isa nam)
