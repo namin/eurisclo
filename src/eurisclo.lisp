@@ -1000,9 +1000,11 @@
 (defun best-subset (l)
   "Get some number of the highest worth units, sorted highest first."
   (setf l (resolve-examples l))
-  ;; Get a random number of the highest worth units?
-  (nreverse (nth (sort-by-worths (copy-list l))
-                 (rand 1 (length l)))))
+  (if l
+      ;; Get a random number of the highest worth units?
+      (nreverse (nth (sort-by-worths (copy-list l))
+                     (rand 1 (length l))))
+      nil))
 
 (defun good-choose (l)
   "Get one of the best units from the list. Best has 50% chance, 2nd best as 25% chance, etc."

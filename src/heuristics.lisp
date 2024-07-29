@@ -582,8 +582,9 @@
                                                always (funcall dt a))
                                          ;; TODO - orig (errorset '(apply *alg-to-use* (applic-args i)) 'nobreak)
                                          ;;  The 'nobreak portion disables breaks for timeout or something? not sure
+                                         ;; It seems like `temp` is the original `(car temp)`.
                                          (let ((temp (ignore-errors (apply *alg-to-use* (applic-args i)))))
-                                           (union-prop *cur-unit* 'applics (list (applic-args i) (car temp))))))
+                                           (union-prop *cur-unit* 'applics (list (applic-args i) temp)))))
                                 100))
                  (and (setf *new-values* (set-difference (applics *cur-unit*)
                                                          *cur-val*))
@@ -754,7 +755,7 @@
                               do (and (not (known-applic *cur-unit* nil))
                                       (cprin1 62 "+")
                                       (union-prop *cur-unit* 'applics
-                                                  `(nil ,(funcall *alg-to-use* nil))))
+                                                  `(nil (,(funcall *alg-to-use* nil)))))
                               until (rule-taking-too-long)
                               finally (setf n-tried j)))
                      (1 (cond ((generator (car (domain *cur-unit*)))
@@ -767,7 +768,7 @@
                                                     (incf n-tried)
                                                     (union-prop *cur-unit* 'applics
                                                                 `((,a)
-                                                                  ,(funcall *alg-to-use* a)))))
+                                                                  (,(funcall *alg-to-use* a))))))
                                              200))
                               (t (loop for j from 1 upto 50
                                        do (and (setf args (mapcar (lambda (d)
@@ -795,16 +796,15 @@
                                                      for a in args
                                                      always (funcall dt a))
                                                (let ((maybe-failed nil))
-                                                 (setf maybe-failed (handler-case (list (apply *alg-to-use* args) nil)
-                                                                                    (t (c)
-                                                                                       (list nil c))))
+                                                 (setf maybe-failed (handler-case (list (apply *alg-to-use* args))
+                                                                      (t (c) c)))
                                                  (union-prop *cur-unit* 'applics
                                                              (list args
                                                                    ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                                   (car maybe-failed))
+                                                                   maybe-failed)
                                                              nil
                                                              (setf maybe-failed (or (null maybe-failed)
-                                                                                    (cadr maybe-failed))))
+                                                                                    (eq maybe-failed 'failed))))
                                                  (cprin1 62 (if maybe-failed "-" "+"))))
                                        until (rule-taking-too-long)
                                        finally (setf n-tried j)))))

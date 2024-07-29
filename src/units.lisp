@@ -2859,7 +2859,7 @@
                                    (memb p (int-examples 'unary-pred)))
                                (leq-nn (car (rarity p))
                                        0.3)
-                               (set tempdef (defn (car (domain p))))
+                               (setf tempdef (defn (car (domain p))))
                                (every tempdef u)
                                (setf tempdef (subset u (lambda (e)
                                                          (run-alg p e))))
