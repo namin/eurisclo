@@ -422,7 +422,7 @@
                  (setf *are-units* nil)
                  (setf *have-spec* nil)
                  ;; TODO - grok this. it's passing the old value of the slot, and the new value is returned?
-                 (setf *new-value* (funcall (pack* 'specialize (data-type *slot-to-change*))
+                 (setf *new-value* (funcall (pack* 'specialize- (data-type *slot-to-change*))
                                             (setf *old-value* (funcall *slot-to-change* *cur-unit*))))
                  ;; TODO - have-spec was just set NIL, but some of the prev line's functions might have mutated it?
                  (let ((need-spec (set-diff *are-units* *have-spec*)))
@@ -582,9 +582,8 @@
                                                always (funcall dt a))
                                          ;; TODO - orig (errorset '(apply *alg-to-use* (applic-args i)) 'nobreak)
                                          ;;  The 'nobreak portion disables breaks for timeout or something? not sure
-                                         ;; It seems like `temp` is the original `(car temp)`.
                                          (let ((temp (ignore-errors (apply *alg-to-use* (applic-args i)))))
-                                           (union-prop *cur-unit* 'applics (list (applic-args i) temp)))))
+                                           (union-prop *cur-unit* 'applics (list (applic-args i) (list (car temp)))))))
                                 100))
                  (and (setf *new-values* (set-difference (applics *cur-unit*)
                                                          *cur-val*))
@@ -798,7 +797,9 @@
                                                (let ((maybe-failed nil))
                                                  (setf maybe-failed (handler-case (apply *alg-to-use* args)
                                                                       (warning () '(failed))
-                                                                      (t (c) (list c))))
+                                                                      (serious-condition (condition) '(failed))
+                                                                      (:no-error (c) (list c))))
+                                                 (assert (listp maybe-failed))
                                                  (union-prop *cur-unit* 'applics
                                                              (list args
                                                                    ;; TODO - was (ERRORSET .. 'NOBREAK)
@@ -838,16 +839,18 @@
                                               (let ((maybe-failed nil))
                                                 (setf maybe-failed (handler-case (apply *alg-to-use* args)
                                                                       (warning () '(failed))
-                                                                      (t (c) (list c))))
-                                                 (union-prop *cur-unit* 'applics
-                                                             (list args
-                                                                   ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                                   maybe-failed)
-                                                             nil
-                                                             (setf maybe-failed (or (null maybe-failed)
-                                                                                    (eq maybe-failed 'failed)
-                                                                                    (and (listp maybe-failed)
-                                                                                         (eq (car maybe-failed) 'failed)))))
+                                                                      (serious-condition (condition) '(failed))
+                                                                      (:no-error (c) (list c))))
+                                                (assert (listp maybe-failed))
+                                                (union-prop *cur-unit* 'applics
+                                                            (list args
+                                                                  ;; TODO - was (ERRORSET .. 'NOBREAK)
+                                                                  maybe-failed)
+                                                            nil
+                                                            (setf maybe-failed (or (null maybe-failed)
+                                                                                   (eq maybe-failed 'failed)
+                                                                                   (and (listp maybe-failed)
+                                                                                        (eq (car maybe-failed) 'failed)))))
                                                 (cprin1 62 (if maybe-failed "-" "+"))))
                                       until (rule-taking-too-long)
                                       finally (setf n-tried j))))
@@ -1389,12 +1392,13 @@
                                                               (lambda (u)
                                                                 (some (lambda (z)
                                                                         ;; ORIG: See if U and Z are equivalent units
-                                                                        (every (intersection (propnames u)
-                                                                                             (examples 'criterial-slot))
-                                                                               (lambda (p)
-                                                                                 (equal-to-within-subst u z
-                                                                                                        (funcall p u)
-                                                                                                        (funcall p z)))))
+                                                                        (every 
+                                                                         (lambda (p)
+                                                                           (equal-to-within-subst u z
+                                                                                                  (funcall p u)
+                                                                                                        (funcall p z)))
+                                                                         (intersection (propnames u)
+                                                                                       (examples 'criterial-slot))))
                                                                       (union (cons *cur-unit*
                                                                                    (getprop *cur-unit* 'specializations))
                                                                              (delete u (map-union (isa u) #'examples)))))))))
