@@ -1,7 +1,10 @@
 # Eurisclo - A Common Lisp port of Doug Lenat's EURISKO
 
-This is a work in progress. It doesn't work. It might progress.
+This is a work in progress.
+It seems to work.
 
+This branch is based on [the working branch of Angle on GitLab](https://gitlab.com/AngularAngel/eurisclo/-/tree/working?ref_type=heads), as of end of July 2024.
+Here is a [diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:working...namin:eurisclo:wip?expand=1).
 
 ## How to make the program not work, in hope of progressing:
 
