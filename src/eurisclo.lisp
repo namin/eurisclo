@@ -2061,7 +2061,7 @@
       ;; Rarity = num-successes / total-calls
       (setf (first rarity) (floor (float (second rarity))
                                   (+ (second rarity)
-                                     (third rarity)))))))
+                                     (or (third rarity) 0)))))))
 
 
 
