@@ -1767,7 +1767,10 @@
                              (specialize-number z)
                              z))
                        x))
-    ((fixp x) (caddr (setf *u-diff* (list x '-> (rand 1 x)))))
+    ((fixp x)
+     (if (eq x 0)
+         nil
+         (caddr (setf *u-diff* (list x '-> (rand 1 x))))))
     ((numberp x) (caddr (setf *u-diff* (list x '-> (floor (rand 0 (floor (* x 200)))
                                                           200.0)))))
     (t nil)))
