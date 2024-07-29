@@ -709,7 +709,7 @@
                       (put nam 'range (copy (range f)))
                       (put nam 'unitized-alg
                            (compile-report
-                                    (subst f 'f '(lambda (s v)
+                                    (subst f 'f '(lambda (s)
                                          ;; TODO - idiomize this loop, is this a REDUCE?
                                          (setf v (car s))
                                          (mapc (lambda (e)

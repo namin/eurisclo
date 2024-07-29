@@ -82,13 +82,13 @@
                                ", and (to that end) has added a new task to the agenda to find such specializations. ")
                        t)
   then-conjecture (lambda (f)
-                    (let ((*conjec* (new-name 'conjec)))
-                      (create-unit *conjec* 'proto-conjec)
-                      (put *conjec* 'english `("Specializations of" ,f "may be more useful than it is, since it has some good instances but many more poor ones. (" ,(percentify (- 1.0 *fraction*)) "are losers)"))
-                      (put *conjec* 'abbrev `(,f "sometimes wins, usually loses, so specializations of it may win big"))
-                      (put *conjec* 'worth (floor (average (nearness-to *fraction* 0.1)
-                                                           (average-worths 'h1 f))))
-                      (push *conjec* *conjectures*)))
+                    (setf *conjec* (new-name 'conjec))
+                    (create-unit *conjec* 'proto-conjec)
+                    (put *conjec* 'english `("Specializations of" ,f "may be more useful than it is, since it has some good instances but many more poor ones. (" ,(percentify (- 1.0 *fraction*)) "are losers)"))
+                    (put *conjec* 'abbrev `(,f "sometimes wins, usually loses, so specializations of it may win big"))
+                    (put *conjec* 'worth (floor (average (nearness-to *fraction* 0.1)
+                                                         (average-worths 'h1 f))))
+                    (push *conjec* *conjectures*))
   then-add-to-agenda (lambda (f)
                        (add-to-agenda (list (list (average-worths f 'h1)
                                                   f
@@ -796,15 +796,18 @@
                                                      for a in args
                                                      always (funcall dt a))
                                                (let ((maybe-failed nil))
-                                                 (setf maybe-failed (handler-case (list (apply *alg-to-use* args))
-                                                                      (t (c) c)))
+                                                 (setf maybe-failed (handler-case (apply *alg-to-use* args)
+                                                                      (warning () '(failed))
+                                                                      (t (c) (list c))))
                                                  (union-prop *cur-unit* 'applics
                                                              (list args
                                                                    ;; TODO - was (ERRORSET .. 'NOBREAK)
                                                                    maybe-failed)
                                                              nil
                                                              (setf maybe-failed (or (null maybe-failed)
-                                                                                    (eq maybe-failed 'failed))))
+                                                                                    (eq maybe-failed 'failed)
+                                                                                    (and (listp maybe-failed)
+                                                                                         (eq (car maybe-failed) 'failed)))))
                                                  (cprin1 62 (if maybe-failed "-" "+"))))
                                        until (rule-taking-too-long)
                                        finally (setf n-tried j)))))
@@ -833,16 +836,18 @@
                                                     for a in args
                                                     always (funcall dt a))
                                               (let ((maybe-failed nil))
-                                                (setf maybe-failed (handler-case (list (apply *alg-to-use* args) nil)
-                                                                                    (t (c)
-                                                                                       (list nil c))))
+                                                (setf maybe-failed (handler-case (apply *alg-to-use* args)
+                                                                      (warning () '(failed))
+                                                                      (t (c) (list c))))
                                                  (union-prop *cur-unit* 'applics
                                                              (list args
                                                                    ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                                   (car maybe-failed))
+                                                                   maybe-failed)
                                                              nil
                                                              (setf maybe-failed (or (null maybe-failed)
-                                                                                    (cadr maybe-failed))))
+                                                                                    (eq maybe-failed 'failed)
+                                                                                    (and (listp maybe-failed)
+                                                                                         (eq (car maybe-failed) 'failed)))))
                                                 (cprin1 62 (if maybe-failed "-" "+"))))
                                       until (rule-taking-too-long)
                                       finally (setf n-tried j))))
@@ -1458,7 +1463,7 @@
                      (and (not (known-applic f (car ap)))
                           ;; TODO - unravel this
                           (every #'funcall *domain-tests* (car ap))
-                          (union-prop f 'applics (list (car ap) (apply *alg-to-use* (car ap))))
+                          (union-prop f 'applics (list (car ap) (list (apply *alg-to-use* (car ap)))))
                           (pushnew f2 *added-some* :test #'eq))))
                  *added-some*)
   arity 1
