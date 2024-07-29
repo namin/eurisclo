@@ -573,7 +573,7 @@
   generator ((nil)
              (get-a-o-pair)
              (old))
-  fast-defn (lambda (s) (eq 2 (length s)))
+  fast-defn (lambda (s) (and (consp s) (eq 2 (length s))))
   generalizations (anything structure mult-ele-struc un-ord-struc bag)
   specializations (non-empty-struc))
 
@@ -583,7 +583,7 @@
   generator ((nil)
              (get-a-o-pair)
              (old))
-  fast-defn (lambda (s) (eq 2 (length s)))
+  fast-defn (lambda (s) (and (consp s) (eq 2 (length s))))
   generalizations (anything structure mult-ele-struc ord-struc list)
   in-domain-of (reverse-o-pair)
   is-range-of (reverse-o-pair)
