@@ -1877,7 +1877,7 @@
                       (put nam 'unitized-alg
                            (compile-report
                             `(lambda ,(nconc (copy fargs) (copy gargs))
-                              (run-alg ,g (run-alg ,f ,@fargs) ,@gargs))))
+                              (run-alg ',g (run-alg ',f ,@fargs) ,@gargs))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors '(compose))
                       (put nam 'isa (append (isa nam)
