@@ -1350,7 +1350,7 @@
   generalizations (anything structure bag list set no-mult-ele-struc ord-struc)
   in-domain-of (o-set-insert o-set-delete o-set-equal o-set-intersect o-set-union o-set-difference)
   is-range-of (o-set-insert o-set-delete o-set-intersect o-set-union o-set-difference)
-  specializations (empty-struc non-empty-struct)
+  specializations (empty-struc non-empty-struc)
   rarity (0 2 2)
   elim-slots (examples))
 
