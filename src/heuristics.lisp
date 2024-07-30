@@ -791,7 +791,7 @@
                                                (progn
                                                  (when failed
                                                    (cprin1 80 "failed is " failed "~%"))
-                                                 (cprin1 80 "known-applic " (known-applic *cur-unit* args) "~%")
+                                                 (cprin1 80 "known-applic " args " : " (known-applic *cur-unit* args) "~%")
                                                  t)
                                                (not failed)
                                                (not (known-applic *cur-unit* args))
@@ -839,7 +839,7 @@
                                                (progn
                                                  (when failed
                                                    (cprin1 80 "failed is " failed "~%"))
-                                                 (cprin1 80 "known-applic " (known-applic *cur-unit* args) "~%")
+                                                 (cprin1 80 "known-applic " args " : " (known-applic *cur-unit* args) "~%")
                                                  t)
                                               (not failed)
                                               (not (known-applic *cur-unit* args))
