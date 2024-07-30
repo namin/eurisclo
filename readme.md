@@ -9,6 +9,7 @@ Here is a [diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:workin
 ## How to run:
 
 * Fire up a common lisp REPL in the src folder.
+  For example: `C-u M-x slime` then `sbcl --control-stack-size 100`.
 
 * Make sure you have Quicklisp loaded one way or another.
 
@@ -18,7 +19,7 @@ Here is a [diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:workin
 
 * Optionally: Enter the eurisclo package using `(in-package :eurisclo)`. If you don't do this, you will need to preface every reference with `eurisclo:`
 
-* start Eurisko: `(eurisko)`. You can put a number as an argument to make the program more or less evrbose in it's descriptions, and can pass t after that to make it run in eternal mode, though you probably don't want to.
+* start Eurisko: `(eurisko)`. You can put a number as an argument to make the program more or less verbose in its descriptions (e.g. `100` for maximum verbosity), and can pass `t` after that to make it run in eternal mode, though you probably don't want to.
 
 * Next it will ask to initialize. You probably want to do this, but so far as I can tell, nothing really changes if you don't.
 

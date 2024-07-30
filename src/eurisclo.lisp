@@ -350,11 +350,11 @@
 ;;;; Interlisp compatibility functions
 
 (defun compile-report (source)
-  (format t "compilation of ~a~%" source)
+  (cprin1 50 "compilation of " source "~%")
   (multiple-value-bind (f warnings-p failure-p)
       (compile nil source)
     (when (or warnings-p failure-p)
-      (format t "compilation warning/errors for ~a: ~a / ~a~%" source warnings-p failure-p))
+      (cprin1 1 "compilation warnings/errors for " source " : " warnings-p " / " failure-p "~%"))
     f))
 
 ;; http://clhs.lisp.se/Body/f_symb_1.htm
@@ -1107,7 +1107,10 @@
                                              (interestingness su looked-thru)))))
      ;; ORIG: this must be the initial call
      (compile-report
-      `(lambda (u) (or ,@looked-thru))))
+      `(lambda (u)
+         ,(if (null (cdr looked-thru))
+              (car looked-thru)
+              `(or ,@looked-thru)))))
     (t
      ;; ORIG: There were no Interestingness predicates anywhere along my ancestry
      nil)))

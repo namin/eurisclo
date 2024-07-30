@@ -339,7 +339,7 @@
   is-range-of (invert-op))
 
 (defunit restrict
-  worth 999;;600
+  worth 600
   isa (math-concept math-op op anything unary-op)
   arity 1
   domain (op)
@@ -353,7 +353,7 @@
                (cond ((and garg ;; TODO - these 2 were setf'd here. Is there return value ever NIL?
                            newdom
                            (not (equal newdom (domain f))))
-                      (let ((nam (create-unit (pack* 'restrict f))))
+                      (let ((nam (create-unit (pack* 'restrict- f))))
                         (put nam 'isa (copy (isa f)))
                         (put nam 'worth (average-worths 'restrict f))
                         (put nam 'arity (arity f))
@@ -365,7 +365,7 @@
                           (put nam 'range (copy (range f)))
                           (put nam 'unitized-alg (compile-report
                                                           `(lambda ,fargs
-                                                             (list 'run-alg #',f ,@fargs)))))
+                                                             (run-alg ',f ,@fargs)))))
                         (put nam 'extensions (list f))
                         (put nam 'elim-slots '(applics))
                         (put nam 'creditors '(restrict))
@@ -1330,6 +1330,8 @@
   fast-alg (lambda (x s)
              (cond ((member x s)
                     s)
+                   ((null s)
+                    (cons x s))
                    (t (cons (car s)
                             (run-alg 'o-set-insert x (cdr s)))))))
 
@@ -1350,7 +1352,7 @@
   generalizations (anything structure bag list set no-mult-ele-struc ord-struc)
   in-domain-of (o-set-insert o-set-delete o-set-equal o-set-intersect o-set-union o-set-difference)
   is-range-of (o-set-insert o-set-delete o-set-intersect o-set-union o-set-difference)
-  specializations (empty-struc non-empty-struct)
+  specializations (empty-struc non-empty-struc)
   rarity (0 2 2)
   elim-slots (examples))
 
@@ -2859,19 +2861,19 @@
                                    (memb p (int-examples 'unary-pred)))
                                (leq-nn (car (rarity p))
                                        0.3)
-                               (setf tempdef (defn (car (domain p))))
-                               (every tempdef u)
-                               (setf tempdef (subset u (lambda (e)
-                                                         (run-alg p e))))
-                               (setf temp2 (find-if (lambda (p2)
-                                                      (and (run-defn (cadr (domain p2)) tempdef)
-                                                           (run-alg p2 u tempdef)))
-                                                    (ok-bin-preds u)))
-                               (cprin1 14 "~%The set of elements of " u
+                               (let ((tempdef (defn (car (domain p)))))
+                                 (every tempdef u)
+                                 (let ((tempdef2 (subset u (lambda (e)
+                                                           (run-alg p e)))))
+                                   (let ((temp2 (find-if (lambda (p2)
+                                                        (and (run-defn (cadr (domain p2)) tempdef2)
+                                                             (run-alg p2 u tempdef)))
+                                                      (ok-bin-preds u))))
+                                     (cprin1 14 "~%The set of elements of " u
                                        " which satisfy the rare predicate " p
                                        " form a very special subset; namely, there are in relation " temp2
                                        " to the entire structure.~%")
-                               (cprin1 40 "    They are, by the way: " tempdef "~%")))
+                                     (cprin1 40 "    They are, by the way: " tempdef "~%"))))))
                         (examples 'unary-pred))
   rarity (0 2 2))
 
