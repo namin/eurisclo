@@ -752,12 +752,12 @@
                       (put nam 'range (copy (range f)))
                       (put nam 'unitized-alg
                            (compile-report
-                                    (subst f 'f '(lambda (s s2 v)
-                                                           (setf v (car s))
-                                                           (mapc (lambda (e)
-                                                                   (setf v (run-alg 'f v s2 e)))
-                                                            (cdr s))
-                                                           v))))
+                                    (subst f 'f '(lambda (s s2)
+                                                  (let ((v (car s)))
+                                                    (mapc (lambda (e)
+                                                            (setf v (run-alg 'f v s2 e)))
+                                                          (cdr s))
+                                                          v)))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors '(repeat2))
                       (add-inv nam)
