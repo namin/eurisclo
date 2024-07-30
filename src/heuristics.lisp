@@ -1620,9 +1620,7 @@
                             (memb 'category (isa *cur-unit*))
                             (setf *space-to-use* (subset (examples 'unary-pred)
                                                          (lambda (p)
-                                                           (and (or (and
-                                                                     (has-high-worth p)
-                                                                     (run-defn (car (domain p)) 'int))
+                                                           (and (or (has-high-worth p)
                                                                     (memb p (int-examples 'unary-pred)))
                                                                 (leq-nn (car (rarity p))
                                                                         0.3)))))
@@ -1643,7 +1641,9 @@
                                         ;; ORIG: See if all examples of CurUnit
                                         ;;       satisfy predicate P
                                         (every (lambda (x)
-                                                 (run-alg p x))
+                                                 (and
+                                                  ;;(run-defn (car (domain p)) 'int)
+                                                  (car (ignore-errors (run-alg p x)))))
                                                (examples *cur-unit*)))))
                  (union-prop-l *cur-unit* *cur-slot* *reas*)
                  *reas*)
