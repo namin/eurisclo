@@ -110,6 +110,7 @@
 
 ;; EURVARS in alphabetical order
 (defvar *agenda* nil)
+(defvar *eternal-mode* nil)
 (defvar *conjectures* nil)
 (defvar *deleted-units* nil)
 
@@ -2357,6 +2358,7 @@
   '!)
 
 (defun start (&optional eternal-flag)
+  (setf *eternal-mode* eternal-flag)
   (cycle-through-agenda)
   (let ((units-focused-on nil)
         (uu nil))
@@ -2371,7 +2373,7 @@
                     ;;(DSPRESET BitAgenda)
                     ;;(cprin1 (length uu) " concepts still must be focused on sometime")
                 )
-                (unless eternal-flag
+                (unless *eternal-mode*
                   (format t "~%Should I continue with another pass? ")
                   (or (yes-no)
                       (return 'eurisko-halting)))))))
