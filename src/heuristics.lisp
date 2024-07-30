@@ -1620,7 +1620,9 @@
                             (memb 'category (isa *cur-unit*))
                             (setf *space-to-use* (subset (examples 'unary-pred)
                                                          (lambda (p)
-                                                           (and (or (has-high-worth p)
+                                                           (and (or (and
+                                                                     (has-high-worth p)
+                                                                     (run-defn (car (domain p)) 'int))
                                                                     (memb p (int-examples 'unary-pred)))
                                                                 (leq-nn (car (rarity p))
                                                                         0.3)))))
