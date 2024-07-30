@@ -710,12 +710,12 @@
                       (put nam 'unitized-alg
                            (compile-report
                                     (subst f 'f '(lambda (s)
-                                         ;; TODO - idiomize this loop, is this a REDUCE?
-                                         (setf v (car s))
-                                         (mapc (lambda (e)
-                                                 (setf v (run-alg 'f v e)))
-                                          (cdr s))
-                                         v))))
+                                                  ;; TODO - idiomize this loop, is this a REDUCE?
+                                                  (let ((v (car s)))
+                                                    (mapc (lambda (e)
+                                                            (setf v (run-alg 'f v e)))
+                                                          (cdr s))
+                                                    v)))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors 'repeat)
                       (add-inv nam)
