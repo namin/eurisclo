@@ -365,7 +365,7 @@
                           (put nam 'range (copy (range f)))
                           (put nam 'unitized-alg (compile-report
                                                           `(lambda ,fargs
-                                                             (list 'run-alg #',f ,@fargs)))))
+                                                             (run-alg ',f ,@fargs)))))
                         (put nam 'extensions (list f))
                         (put nam 'elim-slots '(applics))
                         (put nam 'creditors '(restrict))

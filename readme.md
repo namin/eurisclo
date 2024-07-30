@@ -9,6 +9,7 @@ Here is a [diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:workin
 ## How to run:
 
 * Fire up a common lisp REPL in the src folder.
+  For example: `C-u M-x slime` then `sbcl --control-stack-size 100`.
 
 * Make sure you have Quicklisp loaded one way or another.
 
