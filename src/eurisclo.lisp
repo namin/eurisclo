@@ -150,14 +150,14 @@
   "Default interpreter function to use")
 (defvar *min-pri* 150)
 ;; TODO - added to, but never used otherwise?
-(defvar *move-defns* '((movd 'andf 'and-2 t)
-                       (movd 'andf 'and-1 t)
-                       (movd 'andf 'and-1 t)
+(defvar *move-defns* '((movd 'and 'and-2 t)
+                       (movd 'and 'and-1 t)
+                       (movd 'and 'and-1 t)
                        (movd 'best-subset 'best-subset-3 t)
                        (movd 'best-subset 'best-subset-2 t)
                        (movd 'best-subset 'best-subset-1 t)
-                       (movd 'andf 'and-2 t)
-                       (movd 'andf 'and-1 t)))
+                       (movd 'and 'and-2 t)
+                       (movd 'and 'and-1 t)))
 (defvar *not-for-real* nil)
 (defvar *n-unit-slots* nil)
 (defvar *new-u* nil)
@@ -186,7 +186,7 @@
                   why-int worth))
 (defvar *slots-to-elim-initially* nil)
 (defvar *special-non-units* '(t nil))
-(defvar *synth-u* '(h19-criterial h5-criterial h5-good h-avoid-2-andf h-avoid-3-first h-avoid-if-working))
+(defvar *synth-u* '(h19-criterial h5-criterial h5-good h-avoid-2-and h-avoid-3-first h-avoid-if-working))
 (defvar *temp-caches* '((REMPROP 'anything 'examples)))
 (defvar *undo-kill* nil)
 (defvar *units* '(int-applics mult-ele-struc-insert h29 h28 h27 h26 h25 rarity why-int h24 h23 is-a-int
@@ -206,7 +206,7 @@
                   ord-struc no-mult-ele-struc o-set-delete o-set-op o-set-insert o-set
                   mult-ele-struc-delete-1 mult-ele-struc-op mult-ele-struc bag-delete-1 bag-delete bag-op
                   bag-insert bag list-delete-1 list-delete list list-insert list-op set-delete
-                  set-insert struc-delete struc-op struc-insert andf abbrev add alg always-nil
+                  set-insert struc-delete struc-op struc-insert and abbrev add alg always-nil
                   always-nil-2 always-t always-t-2 anything applic-generator applics arity
                   best-choose best-subset bit category compiled-defn compose conjecture
                   conjecture-about conjectures constant-binary-pred constant-pred
@@ -1265,10 +1265,8 @@
           ((put d 'examples (gather-examples d))
            (setf *temp-caches* `(remprop ',d 'examples))
            (random-choose (examples d)))
-          (t (setf failed t)
-              (cprin1 80 "Failed to find value for: " d "~%")
-              nil))))
-
+          (t (cprin1 80 "Failed to find value for: " d "~%")
+             'FAILED))))
 
 (defun define-if-slot (s)
   ;; TODO - comment
