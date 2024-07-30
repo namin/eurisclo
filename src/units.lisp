@@ -353,7 +353,7 @@
                (cond ((and garg ;; TODO - these 2 were setf'd here. Is there return value ever NIL?
                            newdom
                            (not (equal newdom (domain f))))
-                      (let ((nam (create-unit (pack* 'restrict f))))
+                      (let ((nam (create-unit (pack* 'restrict- f))))
                         (put nam 'isa (copy (isa f)))
                         (put nam 'worth (average-worths 'restrict f))
                         (put nam 'arity (arity f))
