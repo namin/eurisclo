@@ -1330,6 +1330,8 @@
   fast-alg (lambda (x s)
              (cond ((member x s)
                     s)
+                   ((null s)
+                    (cons x s))
                    (t (cons (car s)
                             (run-alg 'o-set-insert x (cdr s)))))))
 
