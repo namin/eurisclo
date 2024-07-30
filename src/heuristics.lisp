@@ -772,12 +772,8 @@
                               (t (loop for j from 1 upto 50
                                        do (and (cprin1 1 "Finding applic for: " *cur-unit* "~%")
                                                (setf args (mapcar #'find-example *space-to-use*))
-                                               (progn
-                                                 (when failed
-                                                   (cprin1 80 "failed is " failed "~%"))
-                                                 (cprin1 80 "known-applic " args " : " (known-applic *cur-unit* args) "~%")
-                                                 t)
-                                               (not failed)
+                                               (cprin1 80 "known-applic " args " : " (known-applic *cur-unit* args) "~%")
+                                               (not (member 'FAILED args))
                                                (not (known-applic *cur-unit* args))
                                                ;; TODO - repeated test
                                                (loop for dt in *domain-tests*
@@ -804,12 +800,8 @@
                      (otherwise (loop for j from 1 upto 50
                                       do (and (cprin1 1 "Finding applic for: " *cur-unit* "~%")
                                               (setf args (mapcar #'find-example *space-to-use*))
-                                               (progn
-                                                 (when failed
-                                                   (cprin1 80 "failed is " failed "~%"))
-                                                 (cprin1 80 "known-applic " args " : " (known-applic *cur-unit* args) "~%")
-                                                 t)
-                                              (not failed)
+                                              (cprin1 80 "known-applic " args " : " (known-applic *cur-unit* args) "~%")
+                                              (not (member 'FAILED args))
                                               (not (known-applic *cur-unit* args))
                                               (loop for dt in *domain-tests*
                                                     for a in args
