@@ -2863,7 +2863,7 @@
                                        0.3)
                                (let ((tempdef (defn (car (domain p)))))
                                  (every tempdef u)
-                                 (let ((tempdef (subset u (lambda (e)
+                                 (let ((tempdef2 (subset u (lambda (e)
                                                            (run-alg p e)))))
                                    (let ((temp2 (find-if (lambda (p2)
                                                         (and (run-defn (cadr (domain p2)) tempdef2)
