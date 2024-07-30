@@ -38,7 +38,7 @@
                   ord-struc no-mult-ele-struc o-set-delete o-set-op o-set-insert o-set
                   mult-ele-struc-delete-1 mult-ele-struc-op mult-ele-struc bag-delete-1 bag-delete bag-op
                   bag-insert bag list-delete-1 list-delete list list-insert list-op set-delete
-                  set-insert struc-delete struc-op struc-insert andf abbrev add alg always-nil
+                  set-insert struc-delete struc-op struc-insert and abbrev add alg always-nil
                   always-nil-2 always-t always-t-2 anything applic-generator applics arity
                   best-choose best-subset bit category compiled-defn compose conjecture
                   conjecture-about conjectures constant-binary-pred constant-pred
@@ -47,7 +47,7 @@
                   examples failed-record failed-record-for fast-alg fast-defn format
                   generalizations generator good-choose good-subset h1 h10 h11 h12 h13 h14 h15
                   h16 h17 h18 h19 h19-criterial h2 h20 h21 h3 h4 h5 h5-criterial h5-good h6 h7 h8
-                  h9 h-avoid h-avoid-2 h-avoid-2-andf h-avoid-3 h-avoid-3-first h-avoid-if-working heuristic
+                  h9 h-avoid h-avoid-2 h-avoid-2-and h-avoid-3 h-avoid-3-first h-avoid-if-working heuristic
                   hind-sight-rule ieqp igeq igreaterp ileq ilessp if-about-to-work-on-task
                   if-finished-working-on-task if-parts if-potentially-relevant if-task-parts
                   if-truly-relevant if-working-on-task in-domain-of indirect-applics inverse isa
@@ -200,7 +200,7 @@
   higher-arity (tertiary-pred)
   generalizations (binary-op pred op anything)
   isa (repr-concept anything category pred-cat-by-nargs op-cat-by-nargs)
-  examples (equal ieqp eq ileq igeq ilessp igreaterp andf or the-second-of
+  examples (equal ieqp eq ileq igeq ilessp igreaterp and or the-second-of
                   the-first-of struc-equal set-equal subsetp constant-binary-pred
                   always-t-2 always-nil-2 o-set-equal bag-equal list-equal member memb
                   implies)
@@ -302,7 +302,7 @@
   worth 500
   isa (math-concept math-obj anything category)
   abbrev ("Logical operations")
-  examples (andf or the-first-of the-second-of not implies))
+  examples (and or the-first-of the-second-of not implies))
 
 (defunit relation
   isa (math-concept math-obj anything category)
@@ -776,7 +776,7 @@
                              ord-struc-equal bag-equal list-equal o-set-equal o-set-delete
                              o-set-insert mult-ele-struc-delete-1 bag-delete-1 bag-delete
                              bag-insert list-delete-1 list-delete list-insert set-delete
-                             set-insert struc-delete struc-insert andf add always-nil-2
+                             set-insert struc-delete struc-insert and add always-nil-2
                              always-t-2 compose eq equal ieqp igeq igreaterp ileq
                              ilessp multiply or set-equal struc-equal subsetp
                              the-first-of the-second-of repeat parallel-join member memb
@@ -1111,7 +1111,7 @@
   domain (o-set o-set)
   range (o-set)
   elim-slots (applics)
-  fast-alg #'o-set-intersect
+  fast-alg o-set-intersect
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) nil)
                         ((member (car s1) s2)
@@ -1591,7 +1591,7 @@
   elim-slots (applics)
   specializations (list-insert bag-insert set-insert o-set-insert))
 
-(defunit andf
+(defunit and
   worth 569
   isa (op pred math-op math-pred anything binary-op logic-op binary-pred)
   fast-alg (lambda (x y)
@@ -1697,11 +1697,11 @@
                        set-of-sets empty-struc non-empty-struc unary-pred binary-pred
                        tertiary-pred)
   isa (repr-concept anything category)
-  is-range-of (random-choose good-choose best-choose andf or the-second-of the-first-of
+  is-range-of (random-choose good-choose best-choose and or the-second-of the-first-of
                              first-ele second-ele third-ele all-but-first all-but-second
                              all-but-third last-ele all-but-last proj1 proj2 proj-1-of-3
                              proj-2-of-3 proj-3-of-3 identity-1 implies ord-struc-equal)
-  in-domain-of (equal eq andf or the-second-of the-first-of always-t always-nil
+  in-domain-of (equal eq and or the-second-of the-first-of always-t always-nil
                       constant-binary-pred always-t-2 always-nil-2 constant-unary-pred
                       undefined-pred struc-insert struc-delete set-insert set-delete
                       list-insert list-delete list-delete-1 bag-insert bag-delete
@@ -1711,7 +1711,7 @@
   fast-defn (lambda (x)
               (declare (ignore x))
               t)
-  examples (andf or the-first-of the-second-of square divisors-of multiply-add successor
+  examples (and or the-first-of the-second-of square divisors-of multiply-add successor
                 random-choose random-subset good-choose best-choose best-subset
                 good-subset equal ieqp eq ileq igeq ilessp igreaterp los1 los2 los3
                 los4 los5 los6 los7 win1 t nil proto-conjec 1 3 5 7 9 11 13 15 17
@@ -1737,7 +1737,7 @@
                 then-conjecture-record then-modify-slots-record then-compute-record
                 record-for failed-record-for record failed-record h1 h5 h6 h3 h4 h7 h8
                 h9 h10 h11 h2 h12 h-avoid h-avoid-2 h-avoid-3 h13 h14 h15 h16 h17 h18
-                h19 h-avoid-2-andf h-avoid-3-first h-avoid-if-working h5-criterial h5-good
+                h19 h-avoid-2-and h-avoid-3-first h-avoid-if-working h5-criterial h5-good
                 h19-criterial set heuristic anything math-concept slot math-obj
                 nnumber unit prime-num conjecture repr-concept even-num task math-op
                 odd-num perf-num perf-square op set-of-numbers set-op unit-op num-op
@@ -2150,7 +2150,7 @@
 (defunit heuristic
   worth 900
   examples (h1 h5 h6 h3 h4 h7 h8 h9 h10 h11 h2 h12 h-avoid h-avoid-2 h-avoid-3 h13 h14
-               h15 h16 h17 h18 h19 h-avoid-2-andf h-avoid-3-first h-avoid-if-working
+               h15 h16 h17 h18 h19 h-avoid-2-and h-avoid-3-first h-avoid-if-working
                h5-criterial h5-good h19-criterial h20 h21 h22 h23 h24 h25 h26 h27
                ;; TODO - H1-6 is referenced twice in EUR, but not found anywhere.
                ;;        Removed it, because it was always selected and did nothing
@@ -2369,7 +2369,7 @@
   worth 500
   examples (divisors-of square multiply add successor random-choose random-subset
                         good-choose best-choose best-subset good-subset equal ieqp eq
-                        ileq igeq ilessp igreaterp andf or the-first-of the-second-of
+                        ileq igeq ilessp igreaterp and or the-first-of the-second-of
                         struc-equal set-equal subsetp compose struc-insert struc-delete
                         set-insert set-delete list-insert list-delete list-delete-1
                         bag-insert bag-delete bag-delete-1 mult-ele-struc-delete-1 o-set-insert
@@ -2393,7 +2393,7 @@
   generalizations (math-concept op pred anything)
   worth 500
   isa (math-concept math-obj anything category)
-  examples (equal ieqp eq ileq igeq ilessp igreaterp andf or the-first-of the-second-of
+  examples (equal ieqp eq ileq igeq ilessp igreaterp and or the-first-of the-second-of
                   struc-equal set-equal subsetp o-set-equal bag-equal list-equal member
                   memb not implies))
 
@@ -2476,7 +2476,7 @@
   domain (anything anything)
   range (anything)
   elim-slots (applics)
-  specializations (the-first-of the-second-of andf))
+  specializations (the-first-of the-second-of and))
 
 (defunit odd-num
   generalizations (nnumber anything)
@@ -2500,8 +2500,8 @@
   examples (random-choose random-subset good-choose-best-choose best-subset good-subset
                           divisors-of square multiply add successor equal ieqp eq ileq
                           igeq ilessp igreaterp h12 h13 h14 h1 h5 h6 h3 h4 h7 h8 h9 h10
-                          h11 h2 h-avoid h-avoid-2 h-avoid-3 h15 andf or the-second-of the-first-of
-                          h19 h-avoid-2-andf h-avoid-3-first h-avoid-if-working h5-criterial h5-good
+                          h11 h2 h-avoid h-avoid-2 h-avoid-3 h15 and or the-second-of the-first-of
+                          h19 h-avoid-2-and h-avoid-3-first h-avoid-if-working h5-criterial h5-good
                           h19-criterial h20 h21 struc-equal set-equal subsetp always-t
                           always-nil constant-binary-pred always-t-2 always-nil-2
                           constant-unary-pred compose undefined-pred struc-insert struc-delete
@@ -2557,7 +2557,7 @@
   isa (repr-concept anything category)
   abbrev ("Boolean predicates")
   specializations (math-pred constant-pred unary-pred binary-pred tertiary-pred)
-  examples (equal ieqp eq ileq igeq ilessp igreaterp andf or the-second-of the-first-of
+  examples (equal ieqp eq ileq igeq ilessp igreaterp and or the-second-of the-first-of
                   struc-equal set-equal subsetp always-t always-nil constant-binary-pred
                   always-t-2 always-nil-2 constant-unary-pred undefined-pred o-set-equal
                   bag-equal list-equal member memb not implies))
@@ -2950,7 +2950,7 @@
   domain (anything anything)
   range (anything)
   elim-slots (applics)
-  specializations (andf)
+  specializations (and)
   generalizations (or)
   rarity (1.0 42 0))
 
@@ -2964,7 +2964,7 @@
   domain (anything anything)
   range (anything)
   elim-slots (applics)
-  specializations (andf)
+  specializations (and)
   generalizations (or))
 
 (defunit then-add-to-agenda
