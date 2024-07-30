@@ -1107,7 +1107,10 @@
                                              (interestingness su looked-thru)))))
      ;; ORIG: this must be the initial call
      (compile-report
-      `(lambda (u) (or ,@looked-thru))))
+      `(lambda (u)
+         ,(if (null (cdr looked-thru))
+              (car looked-thru)
+              `(or ,@looked-thru)))))
     (t
      ;; ORIG: There were no Interestingness predicates anywhere along my ancestry
      nil)))

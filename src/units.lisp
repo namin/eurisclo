@@ -2861,19 +2861,19 @@
                                    (memb p (int-examples 'unary-pred)))
                                (leq-nn (car (rarity p))
                                        0.3)
-                               (setf tempdef (defn (car (domain p))))
-                               (every tempdef u)
-                               (setf tempdef (subset u (lambda (e)
-                                                         (run-alg p e))))
-                               (setf temp2 (find-if (lambda (p2)
-                                                      (and (run-defn (cadr (domain p2)) tempdef)
-                                                           (run-alg p2 u tempdef)))
-                                                    (ok-bin-preds u)))
-                               (cprin1 14 "~%The set of elements of " u
+                               (let ((tempdef (defn (car (domain p)))))
+                                 (every tempdef u)
+                                 (let ((tempdef (subset u (lambda (e)
+                                                           (run-alg p e)))))
+                                   (let ((temp2 (find-if (lambda (p2)
+                                                        (and (run-defn (cadr (domain p2)) tempdef2)
+                                                             (run-alg p2 u tempdef)))
+                                                      (ok-bin-preds u))))
+                                     (cprin1 14 "~%The set of elements of " u
                                        " which satisfy the rare predicate " p
                                        " form a very special subset; namely, there are in relation " temp2
                                        " to the entire structure.~%")
-                               (cprin1 40 "    They are, by the way: " tempdef "~%")))
+                                     (cprin1 40 "    They are, by the way: " tempdef "~%"))))))
                         (examples 'unary-pred))
   rarity (0 2 2))
 
