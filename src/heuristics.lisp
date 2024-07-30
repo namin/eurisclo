@@ -1652,8 +1652,8 @@
                                         ;;       satisfy predicate P
                                         (every (lambda (x)
                                                  (and
-                                                  ;;(run-defn (car (domain p)) 'int)
-                                                  (car (ignore-errors (run-alg p x)))))
+                                                  (run-defn (car (domain p)) x)
+                                                  (run-alg p x)))
                                                (examples *cur-unit*)))))
                  (union-prop-l *cur-unit* *cur-slot* *reas*)
                  *reas*)
