@@ -339,7 +339,7 @@
   is-range-of (invert-op))
 
 (defunit restrict
-  worth 999;;600
+  worth 600
   isa (math-concept math-op op anything unary-op)
   arity 1
   domain (op)
