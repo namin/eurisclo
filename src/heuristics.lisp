@@ -788,6 +788,11 @@
                                                                             (t (setf failed t)
                                                                                nil))))
                                                                   *space-to-use*))
+                                               (progn
+                                                 (when failed
+                                                   (cprin1 80 "failed is " failed "~%"))
+                                                 (cprin1 80 "known-applic " (known-applic *cur-unit* args) "~%")
+                                                 t)
                                                (not failed)
                                                (not (known-applic *cur-unit* args))
                                                ;; TODO - repeated test
@@ -831,6 +836,11 @@
                                                                            (t (setf failed t)
                                                                               nil))))
                                                                  *space-to-use*))
+                                               (progn
+                                                 (when failed
+                                                   (cprin1 80 "failed is " failed "~%"))
+                                                 (cprin1 80 "known-applic " (known-applic *cur-unit* args) "~%")
+                                                 t)
                                               (not failed)
                                               (not (known-applic *cur-unit* args))
                                               (loop for dt in *domain-tests*
@@ -1642,8 +1652,8 @@
                                         ;;       satisfy predicate P
                                         (every (lambda (x)
                                                  (and
-                                                  ;;(run-defn (car (domain p)) 'int)
-                                                  (car (ignore-errors (run-alg p x)))))
+                                                  (run-defn (car (domain p)) x)
+                                                  (run-alg p x)))
                                                (examples *cur-unit*)))))
                  (union-prop-l *cur-unit* *cur-slot* *reas*)
                  *reas*)
