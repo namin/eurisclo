@@ -604,8 +604,7 @@
                          (or (eq 'anything (car (domain f)))
                              (let ((typmem (each-element-is-a s)))
                                (and typmem
-                                    (is-a-kind-of typmem (car (domain f))))))
-                         (is-a-kind-of (car (range f)) 'structure))
+                                    (is-a-kind-of typmem (car (domain f)))))))
                     (let ((nam (create-unit (pack* 'join- f '-on- s 's))))
                       (put nam 'isa (copy (isa f)))
                       (put nam 'worth (average-worths 'parallel-join (average-worths f s)))
@@ -710,12 +709,12 @@
                       (put nam 'unitized-alg
                            (compile-report
                                     (subst f 'f '(lambda (s)
-                                         ;; TODO - idiomize this loop, is this a REDUCE?
-                                         (setf v (car s))
-                                         (mapc (lambda (e)
-                                                 (setf v (run-alg 'f v e)))
-                                          (cdr s))
-                                         v))))
+                                                  ;; TODO - idiomize this loop, is this a REDUCE?
+                                                  (let ((v (car s)))
+                                                    (mapc (lambda (e)
+                                                            (setf v (run-alg 'f v e)))
+                                                          (cdr s))
+                                                    v)))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors 'repeat)
                       (add-inv nam)
@@ -752,12 +751,12 @@
                       (put nam 'range (copy (range f)))
                       (put nam 'unitized-alg
                            (compile-report
-                                    (subst f 'f '(lambda (s s2 v)
-                                                           (setf v (car s))
-                                                           (mapc (lambda (e)
-                                                                   (setf v (run-alg 'f v s2 e)))
-                                                            (cdr s))
-                                                           v))))
+                                    (subst f 'f '(lambda (s s2)
+                                                  (let ((v (car s)))
+                                                    (mapc (lambda (e)
+                                                            (setf v (run-alg 'f v s2 e)))
+                                                          (cdr s))
+                                                          v)))))
                       (put nam 'elim-slots '(applics))
                       (put nam 'creditors '(repeat2))
                       (add-inv nam)
