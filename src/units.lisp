@@ -285,7 +285,7 @@
   elim-slots (applics)
   fast-alg (lambda (x y)
              (or (null x) y))
-  unitized-alg #'(lambda (x y)
+  unitized-alg (lambda (x y)
                    (run-alg 'or (run-alg 'not x) y)))
 
 (defunit not
@@ -604,7 +604,8 @@
                          (or (eq 'anything (car (domain f)))
                              (let ((typmem (each-element-is-a s)))
                                (and typmem
-                                    (is-a-kind-of typmem (car (domain f)))))))
+                                    (is-a-kind-of typmem (car (domain f))))))
+                         (is-a-kind-of (car (range f)) 'structure))
                     (let ((nam (create-unit (pack* 'join- f '-on- s 's))))
                       (put nam 'isa (copy (isa f)))
                       (put nam 'worth (average-worths 'parallel-join (average-worths f s)))
