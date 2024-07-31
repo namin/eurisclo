@@ -57,7 +57,7 @@
                        (if sd
                            (examples (random-choose sd))
                            nil)))
-           tmp)
+           (random-choose tmp))
           ((put d 'examples (gather-examples d))
            (setf *temp-caches* `(remprop ',d 'examples))
            (random-choose (examples d)))
