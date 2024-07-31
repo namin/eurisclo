@@ -7,7 +7,7 @@ The two diffs of interests are:
 - [Angle's working branch (as of July 2024) vs my wip branch diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:working...namin:eurisclo:wip?expand=1).
 - [Angle's wip branch vs my anngle-wip branch diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:angle...namin:eurisclo:angle-my?expand=1).
 
-[Angle's wip branch] is on Gitlab.
+[Angle's wip branch](https://gitlab.com/AngularAngel/eurisclo/-/tree/wip?ref_type=heads) is on Gitlab.
 
 ## How to run:
 
