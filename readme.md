@@ -7,7 +7,11 @@ The two diffs of interests are:
 - [Angle's working branch (as of July 2024) vs my wip branch diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:working...namin:eurisclo:wip?expand=1).
 - [Angle's wip branch vs my anngle-wip branch diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:angle...namin:eurisclo:angle-my?expand=1).
 
-[Angle's wip branch](https://gitlab.com/AngularAngel/eurisclo/-/tree/wip?ref_type=heads) is on Gitlab.
+## Related links
+
+- [Angle's wip branch](https://gitlab.com/AngularAngel/eurisclo/-/tree/wip?ref_type=heads) is on Gitlab.
+- [Interlisp Medley version](https://github.com/seveno4/EURISKO) -- runs out of the fixed stack space.
+- [Wiki](https://github.com/white-flame/eurisko/wiki).
 
 ## How to run:
 
