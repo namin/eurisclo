@@ -1100,7 +1100,9 @@
     (if results
         (compile-report
          `(lambda (u)
-            (or ,@results)))
+            ,(if (null (cdr results))
+                 (car results)
+                 `(or ,@results))))
       nil)))
 
 (defun interestingness-rec (u)
@@ -1126,15 +1128,17 @@
      (cons-nn (getprop u 'interestingness)
               (map-union (generalizations u)
                          (lambda (su)
-                           (interestingness su looked-thru)))))
+                           (interestingness_old su looked-thru)))))
     ((setf looked-thru (cons-nn (getprop u 'interestingness)
                                 (map-union (generalizations u)
                                            (lambda (su)
-                                             (interestingness su looked-thru)))))
+                                             (interestingness_old su looked-thru)))))
      ;; ORIG: this must be the initial call
      (compile-report
       `(lambda (u)
-         (or ,@looked-thru))))
+         ,(if (null (cdr looked-thru))
+              (car looked-thru)
+              `(or ,@looked-thru)))))
     (t
      ;; ORIG: There were no Interestingness predicates anywhere along my ancestry
      nil)))
