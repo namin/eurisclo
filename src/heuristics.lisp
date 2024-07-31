@@ -42,7 +42,7 @@
 (defvar *involved-units*)
 
 
-(defun find-example (d)
+(defun find-example (d &optional recursive)
   "Find an example of the unit"
   (let ((tmp nil))
     (cond ((generator d)
@@ -50,11 +50,19 @@
              (map-examples d (lambda (e)
                               (setf lastgen e))
                            (rand 0 50))
-             'RETURN))
+             (if recursive
+                 lastgen
+                 lastgen)))
           ((examples d)
            (random-choose (examples d)))
-          ((setf tmp (random-choose (specializations d)))
-           (find-example tmp))
+          ((setf tmp (let ((sd (specializations d)))
+                       (if sd
+                           (let ((ex (find-example (random-choose sd) t)))
+                             (if (eq 'FAILED ex)
+                                 nil
+                                 ex))
+                           nil)))
+           tmp)
           ((put d 'examples (gather-examples d))
            (setf *temp-caches* `(remprop ',d 'examples))
            (random-choose (examples d)))
