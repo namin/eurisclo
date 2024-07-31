@@ -50,7 +50,7 @@
              (map-examples d (lambda (e)
                               (setf lastgen e))
                            (rand 0 50))
-             lastgen))
+             (list 'RETURN lastgen)))
           ((examples d)
            (random-choose (examples d)))
           ((setf tmp (let ((sd (specializations d)))
@@ -64,11 +64,19 @@
           (t (cprin1 80 "Failed to find value for: " d "~%")
              'FAILED))))
 
+(defun is-return (ex)
+  (and (listp ex)
+       (eq (car ex) 'RETURN)
+       (= (length ex) 2)))
+
+(defun return-val (ex)
+  (cadr ex))
+
 (defun find-examples (ds)
   (loop for d in ds
         collect (let ((ex (find-example d)))
-                  (when (eq ex 'RETURN)
-                    (return '(RETURN)))
+                  (when (is-return ex)
+                    (return ex))
                   ex)))
 
 ;; TODO - some of the higher numbered heuristics were out of lexical order in EUR, does that indicate anything about the age of the various units/heuristics in there? would it matter? I guess if some things are suspected incomplete, it could be useful to 
@@ -802,8 +810,8 @@
                                        do (and (cprin1 1 "Finding applic for: " *cur-unit* "~%")
                                                (setf args (find-examples *space-to-use*))
                                                (cprin1 80 "args: " args "~%")
-                                               (if (member 'RETURN args)
-                                                   (return 'done)
+                                               (if (is-return args)
+                                                   (return (return-val args))
                                                    t)
                                                (not (member 'FAILED args))
                                                (cprin1 80 "known-applic: " (known-applic *cur-unit* args) "~%")
@@ -834,20 +842,20 @@
                                       do (and (cprin1 1 "Finding applic for: " *cur-unit* "~%")
                                               (setf args (find-examples *space-to-use*))
                                               (cprin1 80 "args: " args "~%")
-                                               (if (member 'RETURN args)
-                                                   (return 'done)
-                                                   t)
-                                               (not (member 'FAILED args))
-                                               (cprin1 80 "known-applic: " (known-applic *cur-unit* args) "~%")
-                                               (not (known-applic *cur-unit* args))
-                                               (loop for dt in *domain-tests*
-                                                     for a in args
-                                                     always (funcall dt a))
-                                               (let ((maybe-failed nil))
-                                                 (setf maybe-failed (handler-case (apply *alg-to-use* args)
-                                                                      (warning () '(failed))
-                                                                      (serious-condition (condition) '(failed))
-                                                                      (:no-error (c) (list c))))
+                                              (if (is-return args)
+                                                  (return (return-val args))
+                                                  t)
+                                              (not (member 'FAILED args))
+                                              (cprin1 80 "known-applic: " (known-applic *cur-unit* args) "~%")
+                                              (not (known-applic *cur-unit* args))
+                                              (loop for dt in *domain-tests*
+                                                    for a in args
+                                                    always (funcall dt a))
+                                              (let ((maybe-failed nil))
+                                                (setf maybe-failed (handler-case (apply *alg-to-use* args)
+                                                                     (warning () '(failed))
+                                                                     (serious-condition (condition) '(failed))
+                                                                     (:no-error (c) (list c))))
                                                 (assert (listp maybe-failed))
                                                 (union-prop *cur-unit* 'applics
                                                             (list args
