@@ -50,7 +50,10 @@
              (map-examples d (lambda (e)
                               (setf lastgen e))
                            (rand 0 50))
-             (list 'RETURN lastgen)))
+             ;;(list 'RETURN lastgen)
+             (cprin1 88 "got a RETURN " lastgen "~%")
+             lastgen
+             ))
           ((examples d)
            (random-choose (examples d)))
           ((setf tmp (let ((sd (specializations d)))
