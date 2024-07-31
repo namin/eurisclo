@@ -318,6 +318,7 @@
   "Stored argument carried across functions")
 
 ;; TODO - some of these might be replacable by local variables
+(defvar *look-thru* nil)
 (defvar *cur-unit* nil) ;; TODO - get unbound errors if not initialized, might be a semantic problem
 (defvar *cur-slot* nil) ;; TODO - get unbound errors if not initialized, might be a semantic problem
 (defvar *cur-val*)
@@ -1093,11 +1094,35 @@
   '|.|)
 
 
+(defun interestingness (u)
+  (setf *looked-thru* nil)
+  (let ((results (interestingness-rec u)))
+    (if results
+        (compile-report
+         `(lambda (u)
+            (or ,@results)))
+      nil)))
 
-(defun interestingness (u &optional looked-thru)
+(defun interestingness-rec (u)
   (cond
-    ((memb u looked-thru) nil)
-    ((cdr (push u looked-thru))
+    ((member (string u) (mapcar #'string *looked-thru*))
+     ;; dealing with uninterned symbols!
+     nil)
+    (t
+     (setf *looked-thru* (cons u *looked-thru*))
+     (cons-nn (getprop u 'interestingness)
+              (map-union (generalizations u)
+                         (lambda (su)
+                           (interestingness-rec su)))))))
+
+(defun interestingness_old (u &optional looked-thru)
+  (cond
+    ((member (string u) (mapcar #'string looked-thru))
+     ;; dealing with uninterned symbols!
+     nil)
+    ((progn
+       (setf looked-thru (cons u looked-thru))
+       (cdr looked-thru))
      (cons-nn (getprop u 'interestingness)
               (map-union (generalizations u)
                          (lambda (su)
@@ -1109,9 +1134,7 @@
      ;; ORIG: this must be the initial call
      (compile-report
       `(lambda (u)
-         ,(if (null (cdr looked-thru))
-              (car looked-thru)
-              `(or ,@looked-thru)))))
+         (or ,@looked-thru))))
     (t
      ;; ORIG: There were no Interestingness predicates anywhere along my ancestry
      nil)))
