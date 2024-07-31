@@ -1111,7 +1111,6 @@
   domain (o-set o-set)
   range (o-set)
   elim-slots (applics)
-  fast-alg o-set-intersect
   recursive-alg (lambda (s1 s2)
                   (cond ((null s1) nil)
                         ((member (car s1) s2)
