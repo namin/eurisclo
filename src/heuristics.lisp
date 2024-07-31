@@ -51,7 +51,6 @@
                               (setf lastgen e))
                            (rand 0 50))
              (unless rec
-               ;;(list 'RETURN lastgen)
                (cprin1 88 "got a RETURN " lastgen "~%"))
              lastgen))
           ((examples d)
@@ -69,20 +68,9 @@
           (t (cprin1 80 "Failed to find value for: " d "~%")
              'FAILED))))
 
-(defun is-return (ex)
-  (and (listp ex)
-       (eq (car ex) 'RETURN)
-       (= (length ex) 2)))
-
-(defun return-val (ex)
-  (cadr ex))
 
 (defun find-examples (ds)
-  (loop for d in ds
-        collect (let ((ex (find-example d)))
-                  (when (is-return ex)
-                    (return ex))
-                  ex)))
+  (mapcar #'find-example ds))
 
 ;; TODO - some of the higher numbered heuristics were out of lexical order in EUR, does that indicate anything about the age of the various units/heuristics in there? would it matter? I guess if some things are suspected incomplete, it could be useful to 
 
@@ -815,9 +803,6 @@
                                        do (and (cprin1 1 "Finding applic for: " *cur-unit* "~%")
                                                (setf args (find-examples *space-to-use*))
                                                (cprin1 80 "args: " args "~%")
-                                               (if (is-return args)
-                                                   (return (return-val args))
-                                                   t)
                                                (not (member 'FAILED args))
                                                (cprin1 80 "known-applic: " (known-applic *cur-unit* args) "~%")
                                                (not (known-applic *cur-unit* args))
@@ -847,9 +832,6 @@
                                       do (and (cprin1 1 "Finding applic for: " *cur-unit* "~%")
                                               (setf args (find-examples *space-to-use*))
                                               (cprin1 80 "args: " args "~%")
-                                              (if (is-return args)
-                                                  (return (return-val args))
-                                                  t)
                                               (not (member 'FAILED args))
                                               (cprin1 80 "known-applic: " (known-applic *cur-unit* args) "~%")
                                               (not (known-applic *cur-unit* args))
