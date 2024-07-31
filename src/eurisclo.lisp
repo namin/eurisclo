@@ -1249,25 +1249,6 @@
                    (lambda (su)
                      (gather-examples su looked-thru))))))
 
-(defun find-example (d)
-  "Find an example of the unit"
-  (let ((tmp nil))
-    (cond ((generator d)
-           (let ((lastgen nil))
-             (map-examples d (lambda (e)
-                              (setf lastgen e))
-                           (rand 0 50))
-             'RETURN))
-          ((examples d)
-           (random-choose (examples d)))
-          ((setf tmp (random-choose (specializations d)))
-           (find-example tmp))
-          ((put d 'examples (gather-examples d))
-           (setf *temp-caches* `(remprop ',d 'examples))
-           (random-choose (examples d)))
-          (t (cprin1 80 "Failed to find value for: " d "~%")
-             'FAILED))))
-
 (defun define-if-slot (s)
   ;; TODO - comment
   (when (and (slotp s)
