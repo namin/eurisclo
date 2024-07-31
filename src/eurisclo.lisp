@@ -1257,7 +1257,7 @@
              (map-examples d (lambda (e)
                               (setf lastgen e))
                            (rand 0 50))
-             lastgen))
+             'RETURN))
           ((examples d)
            (random-choose (examples d)))
           ((setf tmp (random-choose (specializations d)))
