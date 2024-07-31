@@ -55,13 +55,15 @@
              lastgen))
           ((examples d)
            (random-choose (examples d)))
-          ((progn
-             (setf tmp (let ((sd (specializations d)))
-                       (if sd
-                           (find-example (random-choose sd) t)
-                           'FAILED)))
-             (not (eq tmp 'FAILED)))
-           tmp)
+          ;; ((progn
+          ;;    (setf tmp (let ((sd (specializations d)))
+          ;;              (if sd
+          ;;                  (find-example (random-choose sd) t)
+          ;;                  'FAILED)))
+          ;;    (not (eq tmp 'FAILED)))
+          ;;  tmp)
+          ((setf tmp (remove nil (mapcar #'examples  (specializations d))))
+           (random-choose (random-choose tmp)))
           ((put d 'examples (gather-examples d))
            (setf *temp-caches* `(remprop ',d 'examples))
            (random-choose (examples d)))
