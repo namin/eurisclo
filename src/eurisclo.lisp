@@ -2112,8 +2112,8 @@
     (if (eq prev-value nil) (putprop 'heur-dict *rule* 1) (putprop 'heur-dict *rule* (1+ prev-value)))))
 
 (defun print-run-info ()
-  (princ "Tasks: " *task-num*)
-  (describe 'heur-dict))
+  (describe 'heur-dict)
+  (cprin1 1 "Tasks: " *task-num*))
 
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.
