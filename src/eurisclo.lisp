@@ -1983,6 +1983,7 @@
                                                   (snazzy-heuristic *rule* slot-name))
                                              t)
                                          (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
+                                         (increment-heur-count *rule*)
                                          (or (and (is-alto)
                                                   (snazzy-concept t))
                                              t)
@@ -2017,6 +2018,7 @@
     (setf *new-values* nil)
     (setf *cur-reasons* (extract-reasons *task*))
     (setf *cur-sup* (cur-sup *task*))
+    (increment-heur-count 'work-on-unit)
     (when (is-alto)
       (snazzy-task)
       (snazzy-concept t u))
@@ -2105,7 +2107,13 @@
                                   (+ (second rarity)
                                      (or (third rarity) 0)))))))
 
+(defun increment-heur-count (*rule*)
+  (let ((prev-value (getprop 'heur-dict *rule*)))
+    (if (eq prev-value nil) (putprop 'heur-dict *rule* 1) (putprop 'heur-dict *rule* (1+ prev-value)))))
 
+(defun print-run-info ()
+  (princ "Tasks: " *task-num*)
+  (describe 'heur-dict))
 
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.
@@ -2123,6 +2131,7 @@
      (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
           (cprin1 68 "~%  All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
           (update-time-record 'overall-record)
+          (increment-heur-count *rule*)
           t))))
 
 ;; TODO - interp2 was exactly duplicated back-to-back in EUR, I don't think that changes anything?
@@ -2141,6 +2150,7 @@
        (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
             (cprin1 68 "~%       All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
             (update-time-record 'overall-record)
+            (increment-heur-count *rule*)
             t)))))
 
 (defun true-if-it-exists (s)
@@ -2385,7 +2395,8 @@
                       (return 'eurisko-halting)))))))
 
 
-
+(defun stop ()
+  (setf *eternal-mode* nil))
 
 
 
