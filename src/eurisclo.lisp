@@ -449,9 +449,9 @@
    (run-stats)))
 
 (defun print-run-info ()
-  (describe 'heur-total-dict)
-  (describe 'heur-success-dict)
-  (describe 'heur-fail-dict)
+  ;;(describe 'heur-total-dict)
+  ;;(describe 'heur-success-dict)
+  ;;(describe 'heur-fail-dict)
   (print-run-stats)
   (cprin1 1 "Tasks: " *task-num*))
 
@@ -2413,7 +2413,7 @@
   (cprin1 20 "~%")
   '!)
 
-(defun start (&optional eternal-flag)
+(defun start (&optional eternal-flag stop-when)
   (setf *eternal-mode* eternal-flag)
   (cycle-through-agenda)
   (let ((units-focused-on nil)
@@ -2429,7 +2429,7 @@
                     ;;(DSPRESET BitAgenda)
                     ;;(cprin1 (length uu) " concepts still must be focused on sometime")
                 )
-                (unless *eternal-mode*
+                (unless (and *eternal-mode* (or (not stop-when) (not (funcall stop-when))))
                   (format t "~%Should I continue with another pass? ")
                   (or (yes-no)
                       (return 'eurisko-halting)))))))
@@ -2625,7 +2625,7 @@
 (defun applic-gen-init (x) (car x))
 
 (defun extract-input (x) (car x))
-(defun extract-output (x) (cadr x))
+(defun extract-output (x) (car (cadr x))) ;; TODO: the cadr is a result list?
 
 ;; Task field accessors
 ;; (priority unit-name slot-name reasons)

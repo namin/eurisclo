@@ -23,7 +23,7 @@ My `~/.sbclrc` has the following, the Quicklisp loading having been added automa
 
 ### Setup Allegro Common Lisp
 
-I don't typically load Quicklisp automatically, so when running Eurisclo, I execute the following before the run instructions:
+I don't typically load Quicklisp automatically for Allegro Common Lisp, so when running Eurisclo, I execute the following before the run instructions:
 
 ```
 (let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
@@ -50,4 +50,8 @@ To run Slime, `M-x slime`.
 
 To run Slime with an ad-hoc inferior lisp program, prefix the Slime run command, `C-u M-x slime` entering your program, e.g. `alisp` (which must be in your `PATH`).
 
-Handy tip: When you run into a stack trace, you can press `v` on a particular step to jump to source.
+Some tips:
+
+- When you run into a stack trace, you can press `v` on a particular step to jump to source.
+- To get the results including output in a new Emacs buffer, You can evaluate an expression with `C-c C-p` instead of the usual `C-x C-e`.
+  This is handy to get printed information while Eurisclo is running and printing away in the REPL.
