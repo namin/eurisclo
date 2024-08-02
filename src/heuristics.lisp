@@ -670,13 +670,13 @@
                                               (t (cprin1 59 "-")
                                                  nil))
                                             (union-prop *cur-unit* 'examples i)))
-                                   400)
-                     (and (setf *new-values* (set-difference (examples *cur-unit*) *cur-val*))
-                          (push (list 'new-values (list *cur-unit* *cur-slot* *new-values*
-                                                        (list "By examining examples of" *space-to-use*
-                                                              ", Eurisko found" *new-values*
-                                                              "of them were also Examples of" *cur-unit*)))
-                                *task-results*)))))
+                                   400))
+                   (and (setf *new-values* (set-difference (examples *cur-unit*) *cur-val*))
+                        (push (list 'new-values (list *cur-unit* *cur-slot* *new-values*
+                                                      (list "By examining examples of" *space-to-use*
+                                                            ", Eurisko found" *new-values*
+                                                            "of them were also Examples of" *cur-unit*)))
+                              *task-results*))))
   then-compute-record (533544 . 7)
   then-print-to-user-record (5014 . 7)
   overall-record (541853 . 7)
