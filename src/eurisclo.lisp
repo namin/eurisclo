@@ -2625,7 +2625,7 @@
 (defun applic-gen-init (x) (car x))
 
 (defun extract-input (x) (car x))
-(defun extract-output (x) (cadr x))
+(defun extract-output (x) (car (cadr x))) ;; TODO: the cadr is a result list?
 
 ;; Task field accessors
 ;; (priority unit-name slot-name reasons)
