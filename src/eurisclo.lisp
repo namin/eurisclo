@@ -420,10 +420,39 @@
   (let ((prev-value (getprop dict rule)))
     (if (eq prev-value nil) (putprop dict rule 1) (putprop dict rule (1+ prev-value)))))
 
+(defun run-stats ()
+  (stable-sort
+   (stable-sort
+    (mapcar (lambda (h)
+              (let* ((success-count (or (getprop 'heur-success-dict h) 0))
+                     (total-count (getprop 'heur-total-dict h))
+                     (success-percent (round (/ (* 100.0 success-count) total-count))))
+                (list
+                 h
+                 success-percent
+                 success-count
+                 total-count)))
+            (remove-if-not #'symbolp (symbol-plist 'heur-total-dict)))
+    #'>
+    :key #'cadddr) ;; then sort by total count
+   #'<
+   :key #'cadr ;; first sort by success percentage
+ ))
+
+(defun print-run-stats ()
+  (mapc
+   (lambda (r)
+     (let ((h (car r))
+           (success-percent (cadr r))
+           (total-count (cadddr r)))
+       (cprin1 1 (format nil "~a -> ~a% (~a tries)~%" h success-percent total-count))))
+   (run-stats)))
+
 (defun print-run-info ()
   (describe 'heur-total-dict)
   (describe 'heur-success-dict)
   (describe 'heur-fail-dict)
+  (print-run-stats)
   (cprin1 1 "Tasks: " *task-num*))
 
 (defun some (pred list)
