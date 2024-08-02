@@ -408,6 +408,24 @@
   "Returns the items of the list that met the predicate."
   `(remove-if-not ,pred ,list))
 
+(defmacro track-heur-count (work &optional (rule nil))
+  (let ((rule-var (gensym)))
+    `(let ((,rule-var (or ,rule *rule*)))
+      (increment-heur-count ,rule-var 'heur-total-dict)
+       (let ((result ,work))
+         (increment-heur-count ,rule-var (if result 'heur-success-dict 'heur-fail-dict))
+         result))))
+
+(defun increment-heur-count (rule dict)
+  (let ((prev-value (getprop dict rule)))
+    (if (eq prev-value nil) (putprop dict rule 1) (putprop dict rule (1+ prev-value)))))
+
+(defun print-run-info ()
+  (describe 'heur-total-dict)
+  (describe 'heur-success-dict)
+  (describe 'heur-fail-dict)
+  (cprin1 1 "Tasks: " *task-num*))
+
 (defun some (pred list)
   "Like CL:MEMBER, returns the remainder of the list, starting with the one that passed the predicate. (car (some ..)) should be replaced with FIND-IF."
   (cond
@@ -1982,8 +2000,8 @@
                                          (or (and (is-alto)
                                                   (snazzy-heuristic *rule* slot-name))
                                              t)
-                                         (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
-                                         (increment-heur-count *rule*)
+                                         (track-heur-count
+                                          (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts)))))
                                          (or (and (is-alto)
                                                   (snazzy-concept t))
                                              t)
@@ -2018,7 +2036,6 @@
     (setf *new-values* nil)
     (setf *cur-reasons* (extract-reasons *task*))
     (setf *cur-sup* (cur-sup *task*))
-    (increment-heur-count 'work-on-unit)
     (when (is-alto)
       (snazzy-task)
       (snazzy-concept t u))
@@ -2027,8 +2044,10 @@
       ;; ORIG: try to apply H to unit U
       (funcall *interp* h u))
     (cprin1 65 "~%")
-    (when *task-results*
+    (track-heur-count
+     (when *task-results*
       (cprin1 64 " The results of this task so far are: " *task-results* "~%"))
+     'work-on-unit)
     (cprin1 65 "~%")
     (and (is-alto)
          (snazzy-heuristic nil))
@@ -2107,17 +2126,9 @@
                                   (+ (second rarity)
                                      (or (third rarity) 0)))))))
 
-(defun increment-heur-count (*rule*)
-  (let ((prev-value (getprop 'heur-dict *rule*)))
-    (if (eq prev-value nil) (putprop 'heur-dict *rule* 1) (putprop 'heur-dict *rule* (1+ prev-value)))))
-
-(defun print-run-info ()
-  (describe 'heur-dict)
-  (cprin1 1 "Tasks: " *task-num*))
-
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.
-  (every #'true-if-it-exists (sub-slots 'if-parts)))
+  (track-heur-count (every #'true-if-it-exists (sub-slots 'if-parts))))
 
 (defun interp2 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule R, and runs them on argument ArgU.
@@ -2128,11 +2139,11 @@
           (snazzy-heuristic *rule*))
      (cprin1 66 "    All the IfParts of " *rule* " " (abbrev *rule*) " are satisfied, so we are applying the ThenParts.~%")
      (cprin1 29 *rule* " applies.~%")
-     (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
+     (track-heur-count
+      (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
           (cprin1 68 "~%  All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
           (update-time-record 'overall-record)
-          (increment-heur-count *rule*)
-          t))))
+          t)))))
 
 ;; TODO - interp2 was exactly duplicated back-to-back in EUR, I don't think that changes anything?
 
@@ -2147,11 +2158,11 @@
        (cond
          ((> *verbosity* 66) (cprin1 66 " All the IfParts of " *rule* " " (abbrev *rule*) " are satisfied, so we are applying the ThenParts.~%"))
          ((> *verbosity* 29) (cprin1 29 *rule* " applies.~%")))
-       (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
+       (track-heur-count
+        (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
             (cprin1 68 "~%       All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
             (update-time-record 'overall-record)
-            (increment-heur-count *rule*)
-            t)))))
+            t))))))
 
 (defun true-if-it-exists (s)
   ;; ORIG: This is an aux fn of rule interpreters. We assume that the interpreter is being run on a rule called r, which is to be applied to a unit ArgU
