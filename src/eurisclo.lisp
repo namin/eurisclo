@@ -449,9 +449,9 @@
    (run-stats)))
 
 (defun print-run-info ()
-  (describe 'heur-total-dict)
-  (describe 'heur-success-dict)
-  (describe 'heur-fail-dict)
+  ;;(describe 'heur-total-dict)
+  ;;(describe 'heur-success-dict)
+  ;;(describe 'heur-fail-dict)
   (print-run-stats)
   (cprin1 1 "Tasks: " *task-num*))
 
