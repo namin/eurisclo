@@ -2157,7 +2157,7 @@
 
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.
-  (track-heur-count (every #'true-if-it-exists (sub-slots 'if-parts))))
+  (every #'true-if-it-exists (sub-slots 'if-parts)))
 
 (defun interp2 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule R, and runs them on argument ArgU.
