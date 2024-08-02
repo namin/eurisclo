@@ -9,11 +9,13 @@ The two diffs of interests are:
 
 ## Related links
 
-- [Angle's wip branch](https://gitlab.com/AngularAngel/eurisclo/-/tree/wip?ref_type=heads) is on Gitlab.
+- [Angle's work is on Gitlab](https://gitlab.com/AngularAngel/eurisclo/-/branches).
 - [Interlisp Medley version](https://github.com/seveno4/EURISKO) -- runs out of the fixed stack space.
 - [Wiki](https://github.com/white-flame/eurisko/wiki).
 
-## How to run:
+## [How to setup](setup.md)
+
+## How to run
 
 * Fire up a common lisp REPL in the src folder.
   For example: `C-u M-x slime` then `sbcl --control-stack-size 100`, but it turns out `M-x slime` is enough.
