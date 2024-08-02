@@ -16,7 +16,18 @@ The two diffs of interests are:
 
 ## [How to setup](setup.md)
 
-## How to run
+## How to run (recommended commands)
+
+```
+(ql:quickload "eurisclo")
+(in-package :eurisclo)
+(eurisko 100 t)
+;; wait ad infinitum...
+(stop)
+(print-run-info)
+```
+
+## How to run (step-by-step explanations)
 
 * Fire up a common lisp REPL in the src folder.
   For example: `C-u M-x slime` then `sbcl --control-stack-size 100`, but it turns out `M-x slime` is enough.
