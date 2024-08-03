@@ -498,7 +498,7 @@
                                (put new-unit *slot-to-change* *new-value*)
                                (setf *new-units* (cdr (assoc 'new-units *task-results*)))
                                (if *new-units*
-                                   (nconc1 new-unit *new-units*)
+                                   (nconc1  *new-units* new-unit)
                                    (push (list 'new-units new-unit) *task-results*))
                                (addprop 'h6 'applics
                                         (list (list 'task-num *task-num* task (date))
@@ -1321,7 +1321,7 @@
                                    (kill-slot new-unit s)))
                                (put new-unit *slot-to-change* *new-value*)
                                (setf *new-units* (cdr (assoc 'new-units *task-results*)))
-                               (cond (*new-units* (nconc1 new-unit *new-units*))
+                               (cond (*new-units* (nconc1 *new-units* new-unit))
                                      (t (push (list 'new-units new-unit) *task-results*)))
                                (addprop 'h18 'applics
                                         `((task-num ,*task-num* ,task ,(date))
