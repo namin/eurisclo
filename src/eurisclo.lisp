@@ -1744,13 +1744,17 @@
        tmp)
       (t x))))
 
+(defun nested-listp (x)
+  (and (listp x) (remove-if-not #'listp x)))
+
 (defun generalize-text (x)
   (cond
-    ((consp (car x)) (mapcar (lambda (z) (if (randomp)
-                                             (generalize-text z)
-                                             z))
-                             x))
-    (t (setf *u-diff* '("Duplicated: "))
+    ((nested-listp x) (mapcar (lambda (z) (if (randomp)
+                                              (generalize-text z)
+                                              z))
+                              x))
+    (t (setf x (if (listp x) x (list x)))
+       (setf *u-diff* '("Duplicated: "))
        (sort (append (subset x (lambda (r)
                                  (if (randomp)
                                      (progn (nconc1 *u-diff* r) nil)
