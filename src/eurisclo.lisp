@@ -408,17 +408,24 @@
   "Returns the items of the list that met the predicate."
   `(remove-if-not ,pred ,list))
 
-(defmacro track-heur-count (work &optional (rule nil))
+(defmacro track-heur-count (key work &optional (rule nil))
   (let ((rule-var (gensym)))
     `(let ((,rule-var (or ,rule *rule*)))
-      (increment-heur-count ,rule-var 'heur-total-dict)
+      (increment-heur-count ,key ,rule-var 'heur-total-dict)
        (let ((result ,work))
-         (increment-heur-count ,rule-var (if result 'heur-success-dict 'heur-fail-dict))
+         (increment-heur-count ,key ,rule-var (if result 'heur-success-dict 'heur-fail-dict))
          result))))
 
-(defun increment-heur-count (rule dict)
-  (let ((prev-value (getprop dict rule)))
-    (if (eq prev-value nil) (putprop dict rule 1) (putprop dict rule (1+ prev-value)))))
+(defun symbol-append (&rest symbols) 
+  (intern (apply #'concatenate 'string 
+                 (mapcar #'symbol-name symbols))))
+
+(defun increment-heur-count (key rule dict)
+  (let* ((k (symbol-append rule '- key))
+         (prev-value (getprop dict k)))
+    (if (eq prev-value nil)
+        (putprop dict k 1)
+        (putprop dict k (1+ prev-value)))))
 
 (defun run-stats ()
   (stable-sort
@@ -937,7 +944,8 @@
   (let ((so-far nil))
     (dolist (q l)
       ;; OPTIMIZATION - :test #'eq? the interlisp spec doesn't say anything about 
-      (setf so-far (union (funcall f q) so-far)))))
+      (setf so-far (union (funcall f q) so-far)))
+    so-far))
 
 (defun map2every (list funclist)
   "Traversing both lists, apply the respective function to the respective list entry. If any function returns NIL, the entire function fails. Every application must return non-NIL to succeed."
@@ -2029,7 +2037,7 @@
                                          (or (and (is-alto)
                                                   (snazzy-heuristic *rule* slot-name))
                                              t)
-                                         (track-heur-count
+                                         (track-heur-count 'work-on-task
                                           (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts)))))
                                          (or (and (is-alto)
                                                   (snazzy-concept t))
@@ -2073,10 +2081,10 @@
       ;; ORIG: try to apply H to unit U
       (funcall *interp* h u))
     (cprin1 65 "~%")
-    (track-heur-count
+    (track-heur-count 'work-on-unit
      (when *task-results*
       (cprin1 64 " The results of this task so far are: " *task-results* "~%"))
-     'work-on-unit)
+     '*)
     (cprin1 65 "~%")
     (and (is-alto)
          (snazzy-heuristic nil))
@@ -2157,7 +2165,7 @@
 
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.
-  (track-heur-count (every #'true-if-it-exists (sub-slots 'if-parts))))
+  (every #'true-if-it-exists (sub-slots 'if-parts)))
 
 (defun interp2 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule R, and runs them on argument ArgU.
@@ -2168,7 +2176,7 @@
           (snazzy-heuristic *rule*))
      (cprin1 66 "    All the IfParts of " *rule* " " (abbrev *rule*) " are satisfied, so we are applying the ThenParts.~%")
      (cprin1 29 *rule* " applies.~%")
-     (track-heur-count
+     (track-heur-count 'interp2
       (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
           (cprin1 68 "~%  All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
           (update-time-record 'overall-record)
@@ -2187,7 +2195,7 @@
        (cond
          ((> *verbosity* 66) (cprin1 66 " All the IfParts of " *rule* " " (abbrev *rule*) " are satisfied, so we are applying the ThenParts.~%"))
          ((> *verbosity* 29) (cprin1 29 *rule* " applies.~%")))
-       (track-heur-count
+       (track-heur-count 'interp3
         (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
             (cprin1 68 "~%       All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
             (update-time-record 'overall-record)
