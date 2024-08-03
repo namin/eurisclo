@@ -1138,7 +1138,8 @@
               (cond
                 ((dont-copy p) (remprop name p))
                 ((double-check p) (check-the-values name p (funcall p name)))))
-            (add-inv name))
+            (add-inv name)
+            name)
            (t
             (push name *units*)
             (push name *new-u*)
