@@ -2865,16 +2865,19 @@
                                  (when (every tempdef u)
                                    (let ((tempdef2 (subset u (lambda (e)
                                                                (failed-to-nil (run-alg p e))))))
-                                   (let ((temp2 (find-if (lambda (p2)
-                                                           (failed-to-nil
-                                                            (and (run-defn (cadr (domain p2)) tempdef2)
-                                                                 (run-alg p2 u tempdef2))))
-                                                      (ok-bin-preds u))))
-                                     (cprin1 14 "~%The set of elements of " u
-                                       " which satisfy the rare predicate " p
-                                       " form a very special subset; namely, there are in relation " temp2
-                                       " to the entire structure.~%")
-                                     (cprin1 40 "    They are, by the way: " tempdef2 "~%")))))))
+                                     (when tempdef2
+                                       (cprin1 88 "Potential interesting subset: " tempdef2 "~%")
+                                       (let ((temp2 (find-if (lambda (p2)
+                                                               (failed-to-nil
+                                                                (and (run-defn (cadr (domain p2)) tempdef2)
+                                                                     (run-alg p2 u tempdef2))))
+                                                             (ok-bin-preds u))))
+                                         (when temp2
+                                           (cprin1 14 "~%The set of elements of " u
+                                                   " which satisfy the rare predicate " p
+                                                   " form a very special subset; namely, there are in relation " temp2
+                                                   " to the entire structure.~%")
+                                           (cprin1 40 "    They are, by the way: " tempdef2 "~%")))))))))
                         (examples 'unary-pred))
   rarity (0 2 2))
 

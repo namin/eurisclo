@@ -351,13 +351,21 @@
 ;;;;------------------------------------
 ;;;; Interlisp compatibility functions
 
+(defvar *compiler-cache* (make-hash-table :test #'equal))
 (defun compile-report (source)
-  (cprin1 50 "compilation of " source "~%")
-  (multiple-value-bind (f warnings-p failure-p)
-      (compile nil source)
-    (when (or warnings-p failure-p)
-      (cprin1 1 "compilation warnings/errors for " source " : " warnings-p " / " failure-p "~%"))
-    f))
+  (cprin1 99 "seeing source " source "~%")
+  (or (let ((cache-f (gethash source *compiler-cache*)))
+        (when cache-f
+          (cprin1 99 "from cache " cache-f "~%")
+          cache-f))
+      (progn
+        (cprin1 50 "compilation of " source "~%")
+        (multiple-value-bind (f warnings-p failure-p)
+            (compile nil source)
+          (if (or warnings-p failure-p)
+              (cprin1 1 "compilation warnings/errors for " source " : " warnings-p " / " failure-p "~%")
+              (setf (gethash source *compiler-cache*) f))
+          f))))
 
 (defun failed-to-nil (v)
   (if (eq 'failed v)
