@@ -351,21 +351,23 @@
 ;;;;------------------------------------
 ;;;; Interlisp compatibility functions
 
-(defvar *compiler-cache* (make-hash-table :test #'equal))
+;;(defvar *compiler-cache* (make-hash-table :test #'equal))
 (defun compile-report (source)
-  (cprin1 99 "seeing source " source "~%")
-  (or (let ((cache-f (gethash source *compiler-cache*)))
-        (when cache-f
-          (cprin1 99 "from cache " cache-f "~%")
-          cache-f))
-      (progn
-        (cprin1 50 "compilation of " source "~%")
-        (multiple-value-bind (f warnings-p failure-p)
-            (compile nil source)
-          (if (or warnings-p failure-p)
-              (cprin1 1 "compilation warnings/errors for " source " : " warnings-p " / " failure-p "~%")
-              (setf (gethash source *compiler-cache*) f))
-          f))))
+  ;;(cprin1 99 "seeing source " source "~%")
+  (or
+   ;; (let ((cache-f (gethash source *compiler-cache*)))
+   ;;   (when cache-f
+   ;;     (cprin1 99 "from cache " cache-f "~%")
+   ;;     cache-f))
+   (progn
+     (cprin1 50 "compilation of " source "~%")
+     (multiple-value-bind (f warnings-p failure-p)
+         (compile nil source)
+       (if (or warnings-p failure-p)
+           (cprin1 1 "compilation warnings/errors for " source " : " warnings-p " / " failure-p "~%")
+           ;;(setf (gethash source *compiler-cache*) f)
+           )
+       f))))
 
 (defun failed-to-nil (v)
   (if (eq 'failed v)
@@ -1166,15 +1168,20 @@
 
 
 (defun interestingness (u)
-  (setf *looked-thru* nil)
-  (let ((results (interestingness-rec u)))
-    (if results
-        (compile-report
-         `(lambda (u)
-            ,(if (null (cdr results))
-                 (car results)
-                 `(or ,@results))))
-      nil)))
+  (failed-to-nil
+   (or
+    (getprop u 'interestingness-cached)
+    (progn
+      (setf *looked-thru* nil)
+      (let ((results (interestingness-rec u)))
+        (let ((r (if results
+                     (compile-report
+                      `(lambda (u)
+                         ,(if (null (cdr results))
+                              (car results)
+                              `(or ,@results))))
+                     'failed)))
+          (putprop u 'interestingness-cached r)))))))
 
 (defun interestingness-rec (u)
   (cond
@@ -1447,8 +1454,9 @@
               (funcall defn-type u)
               nil))
       (if-let ((ss (specializations u)))
-        (lambda (z)
-          (some (lambda (d) (funcall d z)) (mapcar #'defn ss))))
+        (let ((ds (mapcar #'defn ss)))
+          (lambda (z)
+            (some (lambda (d) (funcall d z)) ds))))
       ;; TODO - was (isa u 'category), which is a misuse passing an extra param, which IL ignores
       ;;        It's just returning the isa list, which will be non-nil on everything but raw
       ;;        numbers, because everything is an Anything.

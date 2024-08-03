@@ -612,6 +612,7 @@
                                          (loop for dt in *domain-tests*
                                                for a in (applic-args i)
                                                always (funcall dt a))
+                                         (cprin1 87 "Found args in domain: " (applic-args i) "~%")
                                          ;; TODO - orig (errorset '(apply *alg-to-use* (applic-args i)) 'nobreak)
                                          ;;  The 'nobreak portion disables breaks for timeout or something? not sure
                                          (let ((temp (ignore-errors (apply *alg-to-use* (applic-args i)))))
