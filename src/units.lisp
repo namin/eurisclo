@@ -2862,8 +2862,8 @@
                                (leq-nn (car (rarity p))
                                        0.3)
                                (let ((tempdef (defn (car (domain p)))))
-                                 (every tempdef u)
-                                 (let ((tempdef2 (subset u (lambda (e)
+                                 (when (every tempdef u)
+                                   (let ((tempdef2 (subset u (lambda (e)
                                                            (run-alg p e)))))
                                    (let ((temp2 (find-if (lambda (p2)
                                                         (and (run-defn (cadr (domain p2)) tempdef2)
@@ -2873,7 +2873,7 @@
                                        " which satisfy the rare predicate " p
                                        " form a very special subset; namely, there are in relation " temp2
                                        " to the entire structure.~%")
-                                     (cprin1 40 "    They are, by the way: " tempdef "~%"))))))
+                                     (cprin1 40 "    They are, by the way: " tempdef "~%")))))))
                         (examples 'unary-pred))
   rarity (0 2 2))
 
