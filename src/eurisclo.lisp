@@ -360,7 +360,7 @@
    ;;     (cprin1 99 "from cache " cache-f "~%")
    ;;     cache-f))
    (progn
-     (cprin1 50 "compilation of " source "~%")
+     (cprin1 99 "compilation of " source "~%")
      (multiple-value-bind (f warnings-p failure-p)
          (compile nil source)
        (if (or warnings-p failure-p)
@@ -756,15 +756,18 @@
   "Tests if the two lists share at least 1 member, by EQ"
   (some (lambda (z) (memb z m)) l))
 
+(defun same-length (v1 v2)
+  ;; TODO: OPTIMIZE - faster implementation of same-length with early exit
+  (= (length v1) (length v2)))
+
 (defun equal-to-within-subst (c1 c2 v1 v2)
   "Is the value of V1 and V2 equal, including if C2 were subst'd for C1?"
   (cond
     ((eq v1 v2))
-    ;; TODO: OPTIMIZE - faster implementation of same-length with early exit
     ((if-let ((l1 (listp v1))
               (l2 (listp v2)))
        (or (not (eq l1 l2))
-           (and l1 l2 (not (eq (length v1) (length v2))))))
+           (and l1 l2 (not (same-length v1 v2)))))
      nil)
     ((equal v1 v2))
     ((equal v2 (subst c2 c1 v1 :test #'eq)))))

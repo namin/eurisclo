@@ -74,6 +74,22 @@
 (defun find-examples (ds)
   (mapcar #'find-example ds))
 
+(defun try-apply-add (args &optional (alg-to-use *alg-to-use*) (cur-unit *cur-unit*))
+  (let ((maybe-failed nil))
+    (setf maybe-failed (handler-case (apply alg-to-use args)
+                         (warning () '(failed))
+                         (serious-condition (condition) '(failed))
+                         (:no-error (c) (list c))))
+    (assert (listp maybe-failed))
+    (union-prop cur-unit 'applics
+                (list args maybe-failed)
+                nil
+                (setf maybe-failed (or (null maybe-failed)
+                                       (eq maybe-failed 'failed)
+                                       (and (listp maybe-failed)
+                                            (eq (car maybe-failed) 'failed)))))
+    (cprin1 62 (if maybe-failed "-" "+"))))
+
 ;; TODO - some of the higher numbered heuristics were out of lexical order in EUR, does that indicate anything about the age of the various units/heuristics in there? would it matter? I guess if some things are suspected incomplete, it could be useful to 
 
 
@@ -492,6 +508,7 @@
                         t)
                        (t t)))
   then-define-new-concepts (lambda (task)
+                             (assert *cur-unit*)
                              (let ((new-unit (create-unit *cur-unit* *cur-unit*)))
                                (dolist (s (sib-slots *slot-to-change*))
                                  (kill-slot new-unit s))
@@ -605,18 +622,14 @@
                  (dolist (z *space-to-use*)
                    (map-applics z (lambda (i)
                                     (and (not (known-applic *cur-unit* (applic-args i)))
-                                         (equal (length *domain-tests*)
-                                                (applic-args i))
+                                         (same-length *domain-tests* (applic-args i))
                                          ;; TODO - verify translation of "(for DT in DomainTests as A in (ApplicArgs I) ..."
                                          ;; TODO - could be a 2-list mapc as well
                                          (loop for dt in *domain-tests*
                                                for a in (applic-args i)
                                                always (funcall dt a))
-                                         (cprin1 87 "Found args in domain: " (applic-args i) "~%")
-                                         ;; TODO - orig (errorset '(apply *alg-to-use* (applic-args i)) 'nobreak)
-                                         ;;  The 'nobreak portion disables breaks for timeout or something? not sure
-                                         (let ((temp (ignore-errors (apply *alg-to-use* (applic-args i)))))
-                                           (union-prop *cur-unit* 'applics (list (applic-args i) (list (car temp)))))))
+                                         ;;(cprin1 87 "Found args in domain: " (applic-args i) "~%")
+                                         (try-apply-add (applic-args i))))
                                 100))
                  (and (setf *new-values* (set-difference (applics *cur-unit*)
                                                          *cur-val*))
@@ -813,22 +826,7 @@
                                              (loop for dt in *domain-tests*
                                                    for a in args
                                                    always (funcall dt a))
-                                             (let ((maybe-failed nil))
-                                               (setf maybe-failed (handler-case (apply *alg-to-use* args)
-                                                                    (warning () '(failed))
-                                                                    (serious-condition (condition) '(failed))
-                                                                    (:no-error (c) (list c))))
-                                               (assert (listp maybe-failed))
-                                               (union-prop *cur-unit* 'applics
-                                                           (list args
-                                                                 ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                                 maybe-failed)
-                                                           nil
-                                                           (setf maybe-failed (or (null maybe-failed)
-                                                                                  (eq maybe-failed 'failed)
-                                                                                  (and (listp maybe-failed)
-                                                                                       (eq (car maybe-failed) 'failed)))))
-                                               (cprin1 62 (if maybe-failed "-" "+"))))
+                                             (try-apply-add args))
                                      until (rule-taking-too-long)
                                      finally (setf n-tried j)))))
                      (otherwise
@@ -842,22 +840,7 @@
                                     (loop for dt in *domain-tests*
                                           for a in args
                                           always (funcall dt a))
-                                    (let ((maybe-failed nil))
-                                      (setf maybe-failed (handler-case (apply *alg-to-use* args)
-                                                           (warning () '(failed))
-                                                           (serious-condition (condition) '(failed))
-                                                           (:no-error (c) (list c))))
-                                      (assert (listp maybe-failed))
-                                      (union-prop *cur-unit* 'applics
-                                                  (list args
-                                                        ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                        maybe-failed)
-                                                  nil
-                                                  (setf maybe-failed (or (null maybe-failed)
-                                                                         (eq maybe-failed 'failed)
-                                                                         (and (listp maybe-failed)
-                                                                              (eq (car maybe-failed) 'failed)))))
-                                      (cprin1 62 (if maybe-failed "-" "+"))))
+                                    (try-apply-add args))
                             until (rule-taking-too-long)
                             finally (setf n-tried j))))
                    (and (setf *new-values* (set-difference (applics *cur-unit*) *cur-val*))
@@ -1315,6 +1298,7 @@
                         t)
                        (t t)))
   then-define-new-concepts (lambda (task)
+                             (assert *cur-unit*)
                              (let ((new-unit (create-unit *cur-unit* *cur-unit*)))
                                (dolist (s (sib-slots *slot-to-change*))
                                  (lambda (s)

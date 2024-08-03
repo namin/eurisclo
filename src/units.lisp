@@ -2861,17 +2861,17 @@
                                    (memb p (int-examples 'unary-pred)))
                                (leq-nn (car (rarity p))
                                        0.3)
-                               (let ((tempdef (defn (car (domain p)))))
-                                 (when (every tempdef u)
-                                   (let ((tempdef2 (subset u (lambda (e)
-                                                               (failed-to-nil (run-alg p e))))))
+                               (let* ((tempdef (defn (car (domain p))))
+                                      (tempu (subset u (lambda (e) (failed-to-nil (funcall tempdef e))))))
+                                 (when tempu
+                                   (let ((tempdef2 (subset tempu (lambda (e) (failed-to-nil (run-alg p e))))))
                                      (when tempdef2
                                        (cprin1 88 "Potential interesting subset: " tempdef2 "~%")
                                        (let ((temp2 (find-if (lambda (p2)
                                                                (failed-to-nil
                                                                 (and (run-defn (cadr (domain p2)) tempdef2)
-                                                                     (run-alg p2 u tempdef2))))
-                                                             (ok-bin-preds u))))
+                                                                     (run-alg p2 tempu tempdef2))))
+                                                             (ok-bin-preds tempu))))
                                          (when temp2
                                            (cprin1 14 "~%The set of elements of " u
                                                    " which satisfy the rare predicate " p
