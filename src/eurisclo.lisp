@@ -429,6 +429,7 @@
       (increment-heur-count ,key ,rule-var 'heur-total-dict)
        (let ((result ,work))
          (increment-heur-count ,key ,rule-var (if result 'heur-success-dict 'heur-fail-dict))
+         (cprin1 39 "Heuristic " ,rule-var " achieved " (if result "success" "failure") "!~%")
          result))))
 
 (defun symbol-append (&rest symbols) 
@@ -2063,7 +2064,7 @@
                                     (return nil))
                                    ((nil) nil)
                                    (otherwise
-                                    (and (cprin1 66 "  The " slot-name " slot of heuristic " *rule* " " (abbrev *rule*)
+                                    (and (cprin1 39 "  The " slot-name " slot of heuristic " *rule* " " (abbrev *rule*)
                                                  " applies to the current task.~%")
                                          (or (and (is-alto)
                                                   (snazzy-heuristic *rule* slot-name))
@@ -2209,7 +2210,7 @@
      (cprin1 29 *rule* " applies.~%")
      (track-heur-count 'interp2
       (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
-          (cprin1 68 "~%  All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
+          (cprin1 39 "~%  All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
           (update-time-record 'overall-record)
           t)))))
 
@@ -2228,7 +2229,7 @@
          ((> *verbosity* 29) (cprin1 29 *rule* " applies.~%")))
        (track-heur-count 'interp3
         (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
-            (cprin1 68 "~%       All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
+            (cprin1 39 "~%       All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
             (update-time-record 'overall-record)
             t))))))
 
@@ -2253,11 +2254,11 @@
     (cond
       ((null z) t)
       ((my-time (lambda () (funcall z *arg-unit*)))
-       (cprin1 80 "        the " s " slot of " *rule* " has been applied successfully to " *arg-unit* "~%")
+       (cprin1 39 "        the " s " slot of " *rule* " has been applied successfully to " *arg-unit* "~%")
        (update-time-record (car (record s)))
        t)
       (t (update-time-record (car (failed-record s)))
-         (cprin1 75 "        the " s " slot of " *rule* " was applied to " *arg-unit*
+         (cprin1 39 "        the " s " slot of " *rule* " was applied to " *arg-unit*
                  ", but for some reason it signalled a failure.~%")
          nil))))
 
