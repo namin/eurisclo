@@ -1359,7 +1359,7 @@
                                                      (some (lambda (z)
                                                              ;; ORIG: See if U and Z are equivalent units
                                                              (every (intersection (propnames u)
-                                                                                  (examples 'slot))
+                                                                                      (examples 'slot))
                                                                     (lambda (p)
                                                                       (equal-to-within-subst u z
                                                                                              (funcall p u)
@@ -1397,13 +1397,13 @@
                                                               (lambda (u)
                                                                 (some (lambda (z)
                                                                         ;; ORIG: See if U and Z are equivalent units
-                                                                        (every 
+                                                                        (every
                                                                          (lambda (p)
                                                                            (equal-to-within-subst u z
                                                                                                   (funcall p u)
-                                                                                                        (funcall p z)))
-                                                                         (intersection (propnames u)
-                                                                                       (examples 'criterial-slot))))
+                                                                                                  (funcall p z)))
+                                                                            (intersection (propnames u)
+                                                                                          (examples 'criterial-slot))))
                                                                       (union (cons *cur-unit*
                                                                                    (getprop *cur-unit* 'specializations))
                                                                              (delete u (map-union (isa u) #'examples)))))))))

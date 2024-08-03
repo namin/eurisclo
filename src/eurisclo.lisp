@@ -359,6 +359,11 @@
       (cprin1 1 "compilation warnings/errors for " source " : " warnings-p " / " failure-p "~%"))
     f))
 
+(defun failed-to-nil (v)
+  (if (eq 'failed v)
+      nil
+      v))
+
 ;; http://clhs.lisp.se/Body/f_symb_1.htm
 (defun symbol-function-or-nil (symbol)
   (if (and
@@ -745,8 +750,11 @@
   "Is the value of V1 and V2 equal, including if C2 were subst'd for C1?"
   (cond
     ((eq v1 v2))
-    ;; OPTIMIZE - faster implementation of same-length with early exit
-    ((not (eq (length v1) (length v2)))
+    ;; TODO: OPTIMIZE - faster implementation of same-length with early exit
+    ((if-let ((l1 (listp v1))
+              (l2 (listp v2)))
+       (or (not (eq l1 l2))
+           (and l1 l2 (not (eq (length v1) (length v2))))))
      nil)
     ((equal v1 v2))
     ((equal v2 (subst c2 c1 v1 :test #'eq)))))
