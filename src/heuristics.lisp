@@ -51,7 +51,7 @@
                               (setf lastgen e))
                            (rand 0 50))
              (unless rec
-               (cprin1 88 "got a RETURN " lastgen "~%"))
+               (cprin1 99 "got a RETURN " lastgen "~%"))
              lastgen))
           ((examples d)
            (random-choose (examples d)))
@@ -67,7 +67,7 @@
           ((put d 'examples (gather-examples d))
            (setf *temp-caches* `(remprop ',d 'examples))
            (random-choose (examples d)))
-          (t (cprin1 80 "Failed to find value for: " d "~%")
+          (t (cprin1 99 "Failed to find value for: " d "~%")
              'FAILED))))
 
 
