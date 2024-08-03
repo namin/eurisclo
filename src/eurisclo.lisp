@@ -944,7 +944,8 @@
   (let ((so-far nil))
     (dolist (q l)
       ;; OPTIMIZATION - :test #'eq? the interlisp spec doesn't say anything about 
-      (setf so-far (union (funcall f q) so-far)))))
+      (setf so-far (union (funcall f q) so-far)))
+    so-far))
 
 (defun map2every (list funclist)
   "Traversing both lists, apply the respective function to the respective list entry. If any function returns NIL, the entire function fails. Every application must return non-NIL to succeed."
