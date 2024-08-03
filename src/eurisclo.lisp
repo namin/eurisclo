@@ -1453,6 +1453,7 @@
             (if defn-type
               (funcall defn-type u)
               nil))
+      ;; TODO: should we catch this?
       (if-let ((ss (specializations u)))
         (let ((ds (mapcar #'defn ss)))
           (lambda (z)
