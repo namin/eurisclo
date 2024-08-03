@@ -801,63 +801,64 @@
                                                                 `((,a)
                                                                   (,(funcall *alg-to-use* a))))))
                                              200))
-                              (t (loop for j from 1 upto 50
-                                       do (and (cprin1 1 "Finding applic for: " *cur-unit* "~%")
-                                               (setf args (find-examples *space-to-use*))
-                                               (cprin1 80 "args: " args "~%")
-                                               (not (member 'FAILED args))
-                                               (cprin1 80 "known-applic: " (known-applic *cur-unit* args) "~%")
-                                               (not (known-applic *cur-unit* args))
-                                               ;; TODO - repeated test
-                                               (loop for dt in *domain-tests*
-                                                     for a in args
-                                                     always (funcall dt a))
-                                               (let ((maybe-failed nil))
-                                                 (setf maybe-failed (handler-case (apply *alg-to-use* args)
-                                                                      (warning () '(failed))
-                                                                      (serious-condition (condition) '(failed))
-                                                                      (:no-error (c) (list c))))
-                                                 (assert (listp maybe-failed))
-                                                 (union-prop *cur-unit* 'applics
-                                                             (list args
-                                                                   ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                                   maybe-failed)
-                                                             nil
-                                                             (setf maybe-failed (or (null maybe-failed)
-                                                                                    (eq maybe-failed 'failed)
-                                                                                    (and (listp maybe-failed)
-                                                                                         (eq (car maybe-failed) 'failed)))))
-                                                 (cprin1 62 (if maybe-failed "-" "+"))))
-                                       until (rule-taking-too-long)
-                                       finally (setf n-tried j)))))
-                     (otherwise (loop for j from 1 upto 50
-                                      do (and (cprin1 1 "Finding applic for: " *cur-unit* "~%")
-                                              (setf args (find-examples *space-to-use*))
-                                              (cprin1 80 "args: " args "~%")
-                                              (not (member 'FAILED args))
-                                              (cprin1 80 "known-applic: " (known-applic *cur-unit* args) "~%")
-                                              (not (known-applic *cur-unit* args))
-                                              (loop for dt in *domain-tests*
-                                                    for a in args
-                                                    always (funcall dt a))
-                                              (let ((maybe-failed nil))
-                                                (setf maybe-failed (handler-case (apply *alg-to-use* args)
-                                                                     (warning () '(failed))
-                                                                     (serious-condition (condition) '(failed))
-                                                                     (:no-error (c) (list c))))
-                                                (assert (listp maybe-failed))
-                                                (union-prop *cur-unit* 'applics
-                                                            (list args
-                                                                  ;; TODO - was (ERRORSET .. 'NOBREAK)
-                                                                  maybe-failed)
-                                                            nil
-                                                            (setf maybe-failed (or (null maybe-failed)
-                                                                                   (eq maybe-failed 'failed)
-                                                                                   (and (listp maybe-failed)
-                                                                                        (eq (car maybe-failed) 'failed)))))
-                                                (cprin1 62 (if maybe-failed "-" "+"))))
-                                      until (rule-taking-too-long)
-                                      finally (setf n-tried j))))
+                              (t (cprin1 1 "Finding applic for: " *cur-unit* "~%")
+                                 (loop for j from 1 upto 50
+                                     do (and (setf args (find-examples *space-to-use*))
+                                             (cprin1 99 "args: " args "~%")
+                                             (not (member 'FAILED args))
+                                             (cprin1 99 "known-applic: " (known-applic *cur-unit* args) "~%")
+                                             (not (known-applic *cur-unit* args))
+                                             ;; TODO - repeated test
+                                             (loop for dt in *domain-tests*
+                                                   for a in args
+                                                   always (funcall dt a))
+                                             (let ((maybe-failed nil))
+                                               (setf maybe-failed (handler-case (apply *alg-to-use* args)
+                                                                    (warning () '(failed))
+                                                                    (serious-condition (condition) '(failed))
+                                                                    (:no-error (c) (list c))))
+                                               (assert (listp maybe-failed))
+                                               (union-prop *cur-unit* 'applics
+                                                           (list args
+                                                                 ;; TODO - was (ERRORSET .. 'NOBREAK)
+                                                                 maybe-failed)
+                                                           nil
+                                                           (setf maybe-failed (or (null maybe-failed)
+                                                                                  (eq maybe-failed 'failed)
+                                                                                  (and (listp maybe-failed)
+                                                                                       (eq (car maybe-failed) 'failed)))))
+                                               (cprin1 62 (if maybe-failed "-" "+"))))
+                                     until (rule-taking-too-long)
+                                     finally (setf n-tried j)))))
+                     (otherwise
+                      (cprin1 1 "Finding applic for: " *cur-unit* "~%")
+                      (loop for j from 1 upto 50
+                            do (and (setf args (find-examples *space-to-use*))
+                                    (cprin1 99 "args: " args "~%")
+                                    (not (member 'FAILED args))
+                                    (cprin1 99 "known-applic: " (known-applic *cur-unit* args) "~%")
+                                    (not (known-applic *cur-unit* args))
+                                    (loop for dt in *domain-tests*
+                                          for a in args
+                                          always (funcall dt a))
+                                    (let ((maybe-failed nil))
+                                      (setf maybe-failed (handler-case (apply *alg-to-use* args)
+                                                           (warning () '(failed))
+                                                           (serious-condition (condition) '(failed))
+                                                           (:no-error (c) (list c))))
+                                      (assert (listp maybe-failed))
+                                      (union-prop *cur-unit* 'applics
+                                                  (list args
+                                                        ;; TODO - was (ERRORSET .. 'NOBREAK)
+                                                        maybe-failed)
+                                                  nil
+                                                  (setf maybe-failed (or (null maybe-failed)
+                                                                         (eq maybe-failed 'failed)
+                                                                         (and (listp maybe-failed)
+                                                                              (eq (car maybe-failed) 'failed)))))
+                                      (cprin1 62 (if maybe-failed "-" "+"))))
+                            until (rule-taking-too-long)
+                            finally (setf n-tried j))))
                    (and (setf *new-values* (set-difference (applics *cur-unit*) *cur-val*))
                                         ;: TODO - some of the add-task-results should be a simple push, not adding key/val stuff!
                         (push (list 'new-values
