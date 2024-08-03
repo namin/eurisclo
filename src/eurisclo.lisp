@@ -2804,7 +2804,7 @@
   (if (>= (loop for ti in u sum (length (if (symbolp ti) (symbol-name ti) ti)))
             100)
       ;; Total characters in all parameters > 100
-      (let ((shorter-name (apply pack* (mapcar #'shorten u))))
+      (let ((shorter-name (apply #'pack* (mapcar #'shorten u))))
         (case (floor *verbosity* 20)
           (0 t)
           (1 (cprin1 0 "    Oh, those long names!  I just had to shorten one.~%"))
