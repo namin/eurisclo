@@ -1993,7 +1993,7 @@
              (sort (loop for i from 1
                          ;; OPTIMIZATION - hoist calculation
                          until (> (square i) n)
-                         ;; OPTIMIZATION - cache computation between divides & floor
+                         ;; OPTIMIZATION - cache computation
                          when (divides i n)
                            collect i
                            and
@@ -2859,8 +2859,8 @@
   interestingness (some (lambda (p)
                           (and (or (has-high-worth p)
                                    (memb p (int-examples 'unary-pred)))
-                               (leq-nn (car (rarity p))
-                                       0.3)
+                               (leq-nn (car (rarity p)) 0.3)
+                               (cprin1 39 "High worth and rare predicate: " p "~%")
                                (let* ((tempdef (defn (car (domain p))))
                                       (tempu (subset u (lambda (e) (failed-to-nil (funcall tempdef e))))))
                                  (when tempu

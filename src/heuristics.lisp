@@ -857,7 +857,7 @@
                                                 (cadr rcu)))
                                     (nf (add-nn (- n-tried (length *new-values*))
                                                 (caddr rcu))))
-                               (list (floor (float nt) (+ nt nf))
+                               (list (/ (float nt) (+ nt nf))
                                      nt nf))))))
   then-compute-record (2296694 . 66)
   then-print-to-user-record (47517 . 66)
@@ -1573,8 +1573,9 @@
                        (progn
                          (cprin1 39 "-")
                          nil)))
+                 (cprin1 39 "~%")
                  (when (setf *new-values* (set-difference (funcall *cur-slot* *cur-unit*)
-                                                         *cur-val*))
+                                                          *cur-val*))
                    (add-task-results 'new-values
                                      `(,*cur-unit*
                                        ,*cur-slot*
