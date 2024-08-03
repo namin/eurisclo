@@ -423,13 +423,14 @@
   "Returns the items of the list that met the predicate."
   `(remove-if-not ,pred ,list))
 
-(defmacro track-heur-count (key work &optional (rule nil))
+(defmacro track-heur-count (key task work &optional (rule nil))
   (let ((rule-var (gensym)))
     `(let ((,rule-var (or ,rule *rule*)))
       (increment-heur-count ,key ,rule-var 'heur-total-dict)
        (let ((result ,work))
          (increment-heur-count ,key ,rule-var (if result 'heur-success-dict 'heur-fail-dict))
          (cprin1 39 "Heuristic " ,rule-var " achieved " (if result "success" "failure") "!~%")
+         (unless result (push-failed-task ,key ,rule-var ,task))
          result))))
 
 (defun symbol-append (&rest symbols) 
@@ -442,6 +443,15 @@
     (if (eq prev-value nil)
         (putprop dict k 1)
         (putprop dict k (1+ prev-value)))))
+
+(defun push-failed-task (key rule task)
+  (let* ((dict 'failed-tasks-dict)
+         (k (symbol-append rule '- key))
+         (prev-value (getprop dict k)))
+    (if (eq prev-value nil)
+        (putprop dict k (list task))
+        (putprop dict k (push task prev-value)))))
+
 
 (defun run-stats ()
   (stable-sort
@@ -470,6 +480,9 @@
            (total-count (cadddr r)))
        (cprin1 1 (format nil "~a -> ~a% (~a tries)~%" h success-percent total-count))))
    (run-stats)))
+
+(defun print-failed-tasks ()
+  (describe 'failed-tasks-dict))
 
 (defun print-run-info ()
   ;;(describe 'heur-total-dict)
@@ -2069,7 +2082,7 @@
                                          (or (and (is-alto)
                                                   (snazzy-heuristic *rule* slot-name))
                                              t)
-                                         (track-heur-count 'work-on-task
+                                         (track-heur-count 'work-on-task task
                                           (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts)))))
                                          (or (and (is-alto)
                                                   (snazzy-concept t))
@@ -2113,7 +2126,7 @@
       ;; ORIG: try to apply H to unit U
       (funcall *interp* h u))
     (cprin1 65 "~%")
-    (track-heur-count 'work-on-unit
+    (track-heur-count 'work-on-unit *task*
      (when *task-results*
       (cprin1 64 " The results of this task so far are: " *task-results* "~%"))
      '*)
@@ -2209,7 +2222,7 @@
           (snazzy-heuristic *rule*))
      (cprin1 66 "    All the IfParts of " *rule* " " (abbrev *rule*) " are satisfied, so we are applying the ThenParts.~%")
      (cprin1 29 *rule* " applies.~%")
-     (track-heur-count 'interp2
+     (track-heur-count 'interp2 *task*
       (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
           (cprin1 39 "~%  All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
           (update-time-record 'overall-record)
@@ -2228,7 +2241,7 @@
        (cond
          ((> *verbosity* 66) (cprin1 66 " All the IfParts of " *rule* " " (abbrev *rule*) " are satisfied, so we are applying the ThenParts.~%"))
          ((> *verbosity* 29) (cprin1 29 *rule* " applies.~%")))
-       (track-heur-count 'interp3
+       (track-heur-count 'interp3 *task*
         (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
             (cprin1 39 "~%       All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
             (update-time-record 'overall-record)
