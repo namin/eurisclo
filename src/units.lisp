@@ -2262,7 +2262,7 @@
   worth 600
   isa (slot criterial-slot repr-concept anything)
   super-slots (if-parts)
-  data-type (lisp-pred))
+  data-type lisp-pred)
 
 (defunit if-working-on-task
   worth 600
