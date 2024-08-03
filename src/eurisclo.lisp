@@ -2186,14 +2186,15 @@
 
 (defun accumulate-rarity (unit success?)
   (let ((rarity (rarity unit)))
-    (when rarity
-      (if success?
-          (incf (second rarity))
-          (incf (third rarity)))
-      ;; Rarity = num-successes / total-calls
-      (setf (first rarity) (floor (float (second rarity))
-                                  (+ (second rarity)
-                                     (or (third rarity) 0)))))))
+    (unless rarity
+      (setf rarity (put unit 'rarity (list 0 0 0))))
+    (if success?
+        (incf (second rarity))
+        (incf (third rarity)))
+    ;; Rarity = num-successes / total-calls
+    (setf (first rarity) (floor (float (second rarity))
+                                (+ (second rarity)
+                                   (or (third rarity) 0))))))
 
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.
