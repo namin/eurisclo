@@ -429,6 +429,7 @@
       (increment-heur-count ,key ,rule-var 'heur-total-dict)
        (let ((result ,work))
          (increment-heur-count ,key ,rule-var (if result 'heur-success-dict 'heur-fail-dict))
+         (cprin1 39 "Heuristic " ',key " achieved " (if result "success" "failure") "!~%")
          result))))
 
 (defun symbol-append (&rest symbols) 
