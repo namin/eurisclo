@@ -1320,8 +1320,8 @@
 
 (defun cache-examples (u)
   "Fill in the example cache of the unit."
-  (unless (getprop u 'examples)
-    (put u 'examples (gather-examples u))))
+  (or (getprop u 'examples)
+      (put u 'examples (gather-examples u))))
 
 (defun gather-examples (u &optional looked-thru)
   ;; TODO - contrast with Examples accessor
