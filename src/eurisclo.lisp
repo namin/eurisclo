@@ -351,13 +351,28 @@
 ;;;;------------------------------------
 ;;;; Interlisp compatibility functions
 
+;;(defvar *compiler-cache* (make-hash-table :test #'equal))
 (defun compile-report (source)
-  (cprin1 50 "compilation of " source "~%")
-  (multiple-value-bind (f warnings-p failure-p)
-      (compile nil source)
-    (when (or warnings-p failure-p)
-      (cprin1 1 "compilation warnings/errors for " source " : " warnings-p " / " failure-p "~%"))
-    f))
+  ;;(cprin1 99 "seeing source " source "~%")
+  (or
+   ;; (let ((cache-f (gethash source *compiler-cache*)))
+   ;;   (when cache-f
+   ;;     (cprin1 99 "from cache " cache-f "~%")
+   ;;     cache-f))
+   (progn
+     (cprin1 99 "compilation of " source "~%")
+     (multiple-value-bind (f warnings-p failure-p)
+         (compile nil source)
+       (if (or warnings-p failure-p)
+           (cprin1 1 "compilation warnings/errors for " source " : " warnings-p " / " failure-p "~%")
+           ;;(setf (gethash source *compiler-cache*) f)
+           )
+       f))))
+
+(defun failed-to-nil (v)
+  (if (eq 'failed v)
+      nil
+      v))
 
 ;; http://clhs.lisp.se/Body/f_symb_1.htm
 (defun symbol-function-or-nil (symbol)
@@ -741,12 +756,18 @@
   "Tests if the two lists share at least 1 member, by EQ"
   (some (lambda (z) (memb z m)) l))
 
+(defun same-length (v1 v2)
+  ;; TODO: OPTIMIZE - faster implementation of same-length with early exit
+  (= (length v1) (length v2)))
+
 (defun equal-to-within-subst (c1 c2 v1 v2)
   "Is the value of V1 and V2 equal, including if C2 were subst'd for C1?"
   (cond
     ((eq v1 v2))
-    ;; OPTIMIZE - faster implementation of same-length with early exit
-    ((not (eq (length v1) (length v2)))
+    ((if-let ((l1 (listp v1))
+              (l2 (listp v2)))
+       (or (not (eq l1 l2))
+           (and l1 l2 (not (same-length v1 v2)))))
      nil)
     ((equal v1 v2))
     ((equal v2 (subst c2 c1 v1 :test #'eq)))))
@@ -1150,15 +1171,20 @@
 
 
 (defun interestingness (u)
-  (setf *looked-thru* nil)
-  (let ((results (interestingness-rec u)))
-    (if results
-        (compile-report
-         `(lambda (u)
-            ,(if (null (cdr results))
-                 (car results)
-                 `(or ,@results))))
-      nil)))
+  (failed-to-nil
+   (or
+    (getprop u 'interestingness-cached)
+    (progn
+      (setf *looked-thru* nil)
+      (let ((results (interestingness-rec u)))
+        (let ((r (if results
+                     (compile-report
+                      `(lambda (u)
+                         ,(if (null (cdr results))
+                              (car results)
+                              `(or ,@results))))
+                     'failed)))
+          (putprop u 'interestingness-cached r)))))))
 
 (defun interestingness-rec (u)
   (cond
@@ -1430,6 +1456,11 @@
             (if defn-type
               (funcall defn-type u)
               nil))
+      ;; TODO: should we catch this?
+      (if-let ((ss (specializations u)))
+        (let ((ds (mapcar #'defn ss)))
+          (lambda (z)
+            (some (lambda (d) (funcall d z)) ds))))
       ;; TODO - was (isa u 'category), which is a misuse passing an extra param, which IL ignores
       ;;        It's just returning the isa list, which will be non-nil on everything but raw
       ;;        numbers, because everything is an Anything.
@@ -1439,7 +1470,7 @@
            ;; Defn of a category is an ISA test
            ;; TODO - this was returning literal source code, which killed a funcall/APPLY*. Trying a closure instead.
            (lambda (z)
-              (memb u (isa z))))))
+             (memb u (isa z))))))
 
 (defun examples (u &optional looked-thru)
   ;; TODO - comment
@@ -2785,7 +2816,7 @@
   (if (>= (loop for ti in u sum (length (if (symbolp ti) (symbol-name ti) ti)))
             100)
       ;; Total characters in all parameters > 100
-      (let ((shorter-name (pack* (mapcar #'shorten u))))
+      (let ((shorter-name (apply #'pack* (mapcar #'shorten u))))
         (case (floor *verbosity* 20)
           (0 t)
           (1 (cprin1 0 "    Oh, those long names!  I just had to shorten one.~%"))

@@ -1210,7 +1210,7 @@
                         (t (and (consp s1)
                                 (consp s2)
                                 (member (car s1) s2)
-                                (run-alg 'bag-equal (cdr s2) (run-alg 'bag-delete-1 (car s1) s2))))))
+                                (run-alg 'bag-equal (cdr s1) (run-alg 'bag-delete-1 (car s1) s2))))))
   specializations (list-equal)
   is-a-int (binary-pred)
   rarity (0.1 1 9))
@@ -2861,19 +2861,23 @@
                                    (memb p (int-examples 'unary-pred)))
                                (leq-nn (car (rarity p))
                                        0.3)
-                               (let ((tempdef (defn (car (domain p)))))
-                                 (when (every tempdef u)
-                                   (let ((tempdef2 (subset u (lambda (e)
-                                                           (run-alg p e)))))
-                                   (let ((temp2 (find-if (lambda (p2)
-                                                        (and (run-defn (cadr (domain p2)) tempdef2)
-                                                             (run-alg p2 u tempdef)))
-                                                      (ok-bin-preds u))))
-                                     (cprin1 14 "~%The set of elements of " u
-                                       " which satisfy the rare predicate " p
-                                       " form a very special subset; namely, there are in relation " temp2
-                                       " to the entire structure.~%")
-                                     (cprin1 40 "    They are, by the way: " tempdef "~%")))))))
+                               (let* ((tempdef (defn (car (domain p))))
+                                      (tempu (subset u (lambda (e) (failed-to-nil (funcall tempdef e))))))
+                                 (when tempu
+                                   (let ((tempdef2 (subset tempu (lambda (e) (failed-to-nil (run-alg p e))))))
+                                     (when tempdef2
+                                       (cprin1 88 "Potential interesting subset: " tempdef2 "~%")
+                                       (let ((temp2 (find-if (lambda (p2)
+                                                               (failed-to-nil
+                                                                (and (run-defn (cadr (domain p2)) tempdef2)
+                                                                     (run-alg p2 tempu tempdef2))))
+                                                             (ok-bin-preds tempu))))
+                                         (when temp2
+                                           (cprin1 14 "~%The set of elements of " u
+                                                   " which satisfy the rare predicate " p
+                                                   " form a very special subset; namely, there are in relation " temp2
+                                                   " to the entire structure.~%")
+                                           (cprin1 40 "    They are, by the way: " tempdef2 "~%")))))))))
                         (examples 'unary-pred))
   rarity (0 2 2))
 
