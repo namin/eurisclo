@@ -2867,7 +2867,7 @@
                                                            (run-alg p e)))))
                                    (let ((temp2 (find-if (lambda (p2)
                                                         (and (run-defn (cadr (domain p2)) tempdef2)
-                                                             (run-alg p2 u tempdef)))
+                                                             (run-alg p2 u tempdef2)))
                                                       (ok-bin-preds u))))
                                      (cprin1 14 "~%The set of elements of " u
                                        " which satisfy the rare predicate " p

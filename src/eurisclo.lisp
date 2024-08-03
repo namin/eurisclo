@@ -1430,6 +1430,9 @@
             (if defn-type
               (funcall defn-type u)
               nil))
+      (if-let ((ss (specializations u)))
+        (lambda (z)
+          (some (lambda (d) (funcall d z)) (mapcar #'defn ss))))
       ;; TODO - was (isa u 'category), which is a misuse passing an extra param, which IL ignores
       ;;        It's just returning the isa list, which will be non-nil on everything but raw
       ;;        numbers, because everything is an Anything.
@@ -1439,7 +1442,7 @@
            ;; Defn of a category is an ISA test
            ;; TODO - this was returning literal source code, which killed a funcall/APPLY*. Trying a closure instead.
            (lambda (z)
-              (memb u (isa z))))))
+             (memb u (isa z))))))
 
 (defun examples (u &optional looked-thru)
   ;; TODO - comment
