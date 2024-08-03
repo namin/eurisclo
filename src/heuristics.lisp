@@ -1199,7 +1199,7 @@
                           *conjectures*))
   then-add-to-agenda (lambda (f)
                        (add-to-agenda `((,(average-worths f 'h16)
-                                         ,f 'generalizations
+                                         ,f generalizations
                                          (,*conjec*)
                                          ((credit-to h16)))))
                        ;; TODO - rename this add-task-property
