@@ -457,7 +457,7 @@
                         ((eq x (car s)) t)
                         (t (run-alg 'memb x (cdr s)))))
   is-a-int (binary-pred)
-  rarity (0.1.1 9))
+  rarity (0.1 1 9))
 
 (defunit member
   worth 500
@@ -2866,7 +2866,7 @@
                                  (when tempu
                                    (let ((tempdef2 (subset tempu (lambda (e) (failed-to-nil (run-alg p e))))))
                                      (when tempdef2
-                                       (cprin1 88 "Potential interesting subset: " tempdef2 "~%")
+                                       (cprin1 39 "Potential interesting subset of length: " (length tempdef2) "~%")
                                        (let ((temp2 (find-if (lambda (p2)
                                                                (failed-to-nil
                                                                 (and (run-defn (cadr (domain p2)) tempdef2)

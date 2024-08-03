@@ -2193,8 +2193,7 @@
         (incf (third rarity)))
     ;; Rarity = num-successes / total-calls
     (setf (first rarity) (floor (float (second rarity))
-                                (+ (second rarity)
-                                   (or (third rarity) 0))))))
+                                (+ (second rarity) (third rarity))))))
 
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.

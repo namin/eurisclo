@@ -1567,11 +1567,11 @@
                  (dolist (z *space-to-use*)
                    (if (funcall *defn-to-use* z)
                        (progn
-                         (cprin1 55 "+")
+                         (cprin1 39 "+")
                          (union-prop *cur-unit* 'int-examples z)
                          t)
                        (progn
-                         (cprin1 56 "-")
+                         (cprin1 39 "-")
                          nil)))
                  (when (setf *new-values* (set-difference (funcall *cur-slot* *cur-unit*)
                                                          *cur-val*))
