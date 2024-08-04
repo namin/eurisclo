@@ -563,7 +563,7 @@
        t))
   (if to-head
       (push new (get atom prop))
-      (setf (get atom prop) (nconc1 (get atom prop) new))))
+      (setf (get atom prop) (nconc1 (copy (get atom prop)) new))))
 
 ;; TODO - no idea why PUTPROP vs PUT is used in the code. PUT is not standard IL.
 (declaim (inline putprop put))
@@ -2803,7 +2803,10 @@
 ;; work-around that sometimes bad examples are added
 (defun check-props (u p)
   (let ((d (defn u)))
-    (remove-if-not d (funcall p u))))
+    (let* ((r (funcall p u))
+           (r-check (remove-if-not d r)))
+      (assert (not (set-diff r r-check)))
+      r)))
 (defun check-examples (u)
   (check-props u 'examples))
 (defun check-int-examples (u)

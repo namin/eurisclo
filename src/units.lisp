@@ -705,7 +705,12 @@
                          (is-a-kind-of (car (range f))
                                        (car (domain f))))
                     (let ((nam (create-unit (pack* 'repeat- f '-on- s 's))))
-                      (put nam 'isa (subst 'unary-op 'binary-op (isa f)))
+                      (put nam 'isa
+                           (let* ((r (isa f))
+                                  (r (subst 'unary-op 'binary-op r))
+                                  (r (subst 'unary-pred 'binary-pred r))
+                                  (r (subst 'constant-unary-pred 'constant-binary-pred r)))
+                             r))
                       (put nam 'worth (average-worths 'repeat (average-worths f s)))
                       (put nam 'arity 1)
                       (put nam 'domain (list s))
