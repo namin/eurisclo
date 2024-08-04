@@ -1212,13 +1212,17 @@
 
 (defun interestingness (u)
   (setf *looked-thru* nil)
-  (let ((results (interestingness-rec u)))
+  (interestingness-rec u)
+  (let ((results
+          (map-union
+           *looked-thru*
+           (lambda (w) (getprop w 'interestingness)))))
     (when results
-      (compile-report
-       `(lambda (u)
-          ,(if (null (cdr results))
-               (car results)
-               `(or ,@results)))))))
+    (compile-report
+     `(lambda (u)
+        ,(if (null (cdr results))
+             (car results)
+             `(or ,@results)))))))
 
 (defun interestingness-rec (u)
   (cond
@@ -1228,10 +1232,8 @@
      nil)
     (t
      (setf *looked-thru* (cons u *looked-thru*))
-     (cons-nn (getprop u 'interestingness)
-              (map-union (generalizations u)
-                         (lambda (su)
-                           (interestingness-rec su)))))))
+     (mapc (lambda (su) (interestingness-rec su))
+           (generalizations u)))))
 
 (defun more-specific (u v)
   (cond
