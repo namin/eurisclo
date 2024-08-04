@@ -2088,6 +2088,7 @@
                    (sub-slots 'if-task-parts))
       (add-task-results 'termination 'aborted))
     (cprin1 64 " The results of this task were: " *task-results* "~%")
+    (cprin1 39 " The new units were: " (assoc 'new-units *task-results*) "~%")
     (cprin1 65 "~%")
     *task-results*))
 
