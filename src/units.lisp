@@ -190,8 +190,10 @@
   isa (repr-concept anything category pred-cat-by-nargs op-cat-by-nargs)
   examples (always-t always-nil constant-unary-pred undefined-pred not)
   fast-defn (lambda (f)
-              (and (memb 'pred (isa f))
-                   (eq 1 (arity f))))
+              (let ((r (and (memb 'pred (isa f))
+                            (eq 1 (arity f)))))
+                (cprin1 99 "unary-pred called for " f " with result " r "~%")
+                r))
   rarity (0.1182796 11 82))
 
 (defunit binary-pred
@@ -457,7 +459,7 @@
                         ((eq x (car s)) t)
                         (t (run-alg 'memb x (cdr s)))))
   is-a-int (binary-pred)
-  rarity (0.1.1 9))
+  rarity (0.1 1 9))
 
 (defunit member
   worth 500
@@ -703,7 +705,12 @@
                          (is-a-kind-of (car (range f))
                                        (car (domain f))))
                     (let ((nam (create-unit (pack* 'repeat- f '-on- s 's))))
-                      (put nam 'isa (subst 'unary-op 'binary-op (isa f)))
+                      (put nam 'isa
+                           (let* ((r (isa f))
+                                  (r (subst 'unary-op 'binary-op r))
+                                  (r (subst 'unary-pred 'binary-pred r))
+                                  (r (subst 'constant-unary-pred 'constant-binary-pred r)))
+                             r))
                       (put nam 'worth (average-worths 'repeat (average-worths f s)))
                       (put nam 'arity 1)
                       (put nam 'domain (list s))
@@ -1993,7 +2000,7 @@
              (sort (loop for i from 1
                          ;; OPTIMIZATION - hoist calculation
                          until (> (square i) n)
-                         ;; OPTIMIZATION - cache computation between divides & floor
+                         ;; OPTIMIZATION - cache computation
                          when (divides i n)
                            collect i
                            and
@@ -2262,7 +2269,7 @@
   worth 600
   isa (slot criterial-slot repr-concept anything)
   super-slots (if-parts)
-  data-type (lisp-pred))
+  data-type lisp-pred)
 
 (defunit if-working-on-task
   worth 600
@@ -2858,15 +2865,15 @@
   is-range-of (struc-insert struc-delete struc-intersect struc-union struc-difference)
   interestingness (some (lambda (p)
                           (and (or (has-high-worth p)
-                                   (memb p (int-examples 'unary-pred)))
-                               (leq-nn (car (rarity p))
-                                       0.3)
+                                   (memb p (check-int-examples 'unary-pred)))
+                               (is-rare p)
+                               (cprin1 88 "High worth and rare predicate: " p "~%")
                                (let* ((tempdef (defn (car (domain p))))
                                       (tempu (subset u (lambda (e) (failed-to-nil (funcall tempdef e))))))
                                  (when tempu
                                    (let ((tempdef2 (subset tempu (lambda (e) (failed-to-nil (run-alg p e))))))
                                      (when tempdef2
-                                       (cprin1 88 "Potential interesting subset: " tempdef2 "~%")
+                                       (cprin1 39 "Potential interesting subset of length: " (length tempdef2) "~%")
                                        (let ((temp2 (find-if (lambda (p2)
                                                                (failed-to-nil
                                                                 (and (run-defn (cadr (domain p2)) tempdef2)
@@ -2878,7 +2885,7 @@
                                                    " form a very special subset; namely, there are in relation " temp2
                                                    " to the entire structure.~%")
                                            (cprin1 40 "    They are, by the way: " tempdef2 "~%")))))))))
-                        (examples 'unary-pred))
+                        (check-examples 'unary-pred))
   rarity (0 2 2))
 
 (defunit sub-slots

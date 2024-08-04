@@ -570,14 +570,22 @@
 
 (defun addprop (atom prop new &optional to-head)
   "Adds the NEW value to the end of the proplist for property PROP on ATOM."
+  (assert
+   (if (eq prop 'unary-pred)
+       (= 1 (length (domain new)))
+       t))
   (if to-head
       (push new (get atom prop))
-      (setf (get atom prop) (nconc1 (get atom prop) new))))
+      (setf (get atom prop) (nconc1 (copy (get atom prop)) new))))
 
 ;; TODO - no idea why PUTPROP vs PUT is used in the code. PUT is not standard IL.
 (declaim (inline putprop put))
 (defun putprop (symbol key value)
   "Set a single property value"
+  (assert
+   (if (eq key 'unary-pred)
+       (every (lambda (p) (= 1 (length (domain p)))) value)
+       t))
   (setf (get symbol key) value))
 
 (defun put (symbol key value)
@@ -1061,7 +1069,7 @@
 
 (defun has-high-worth (u)
   (and (unitp u)
-       (> (worth u) 800)))
+       (> (worth u) 500))) ;; orig: 800
 
 (defun less-worth (u1 u2)
   (cond
@@ -1151,7 +1159,8 @@
               (cond
                 ((dont-copy p) (remprop name p))
                 ((double-check p) (check-the-values name p (funcall p name)))))
-            (add-inv name))
+            (add-inv name)
+            name)
            (t
             (push name *units*)
             (push name *new-u*)
@@ -1168,6 +1177,8 @@
          (push `(movd ',nold ',name) *move-defns*)
          )))
 
+(defun remove-killed (us)
+  (remove-if-not #'unitp us))
 
 (defun kill-unit (u)
   (and (unitp u)
@@ -1185,25 +1196,20 @@
 
 
 (defun interestingness (u)
-  (failed-to-nil
-   (or
-    (getprop u 'interestingness-cached)
-    (progn
-      (setf *looked-thru* nil)
-      (let ((results (interestingness-rec u)))
-        (let ((r (if results
-                     (compile-report
-                      `(lambda (u)
-                         ,(if (null (cdr results))
-                              (car results)
-                              `(or ,@results))))
-                     'failed)))
-          (putprop u 'interestingness-cached r)))))))
+  (setf *looked-thru* nil)
+  (let ((results (interestingness-rec u)))
+    (when results
+      (compile-report
+       `(lambda (u)
+          ,(if (null (cdr results))
+               (car results)
+               `(or ,@results)))))))
 
 (defun interestingness-rec (u)
   (cond
-    ((member (string u) (mapcar #'string *looked-thru*))
-     ;; dealing with uninterned symbols!
+    ((not (unitp u))
+     nil)
+    ((memb u *looked-thru*)
      nil)
     (t
      (setf *looked-thru* (cons u *looked-thru*))
@@ -1211,32 +1217,6 @@
               (map-union (generalizations u)
                          (lambda (su)
                            (interestingness-rec su)))))))
-
-(defun interestingness_old (u &optional looked-thru)
-  (cond
-    ((member (string u) (mapcar #'string looked-thru))
-     ;; dealing with uninterned symbols!
-     nil)
-    ((progn
-       (setf looked-thru (cons u looked-thru))
-       (cdr looked-thru))
-     (cons-nn (getprop u 'interestingness)
-              (map-union (generalizations u)
-                         (lambda (su)
-                           (interestingness_old su looked-thru)))))
-    ((setf looked-thru (cons-nn (getprop u 'interestingness)
-                                (map-union (generalizations u)
-                                           (lambda (su)
-                                             (interestingness_old su looked-thru)))))
-     ;; ORIG: this must be the initial call
-     (compile-report
-      `(lambda (u)
-         ,(if (null (cdr looked-thru))
-              (car looked-thru)
-              `(or ,@looked-thru)))))
-    (t
-     ;; ORIG: There were no Interestingness predicates anywhere along my ancestry
-     nil)))
 
 (defun more-specific (u v)
   (cond
@@ -1272,6 +1252,7 @@
 
 
 (defun dwim-union-prop (a p v &optional flag)
+  (cprin1 99 "dwim-union-prop " a " " p " " v " " flag "~%")
   ;; TODO - comment
   (cond
     ((unitp a) (union-prop a p v flag))
@@ -1284,10 +1265,10 @@
           (union-prop a p v flag)
           (putprop a 'isa '(slot))
           (new-unit a (and (inverse p)
-                     (unitp v)
-                     (let ((tmp8 (find-if #'unitp (funcall (car (inverse p)) v))))
-                       (cprin1 0 " ... Copying from " tmp8 "~%")
-                       tmp8)))))))
+                           (unitp v)
+                           (let ((tmp8 (find-if #'unitp (funcall (car (inverse p)) v))))
+                             (cprin1 0 " ... Copying from " tmp8 "~%")
+                             tmp8)))))))
 
 (defun new-unit (n nold &optional fullflg)
   (prog1 (cond
@@ -1553,6 +1534,7 @@
                                 (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*))))))))
               (max-space (average *cur-pri* 1000)))
     ;; TODO - this length check eliminates an internal loop, but how actually impactful is that? verify that the general 2nd clause will work for everything
+    (cprin1 99 "map-applics extra stuff~%")
     (if (= 1 (length gena))
         (loop initially (set (car gena) (car (applic-gen-init gen)))
               for j from 1 to num-iterations
@@ -1756,13 +1738,17 @@
        tmp)
       (t x))))
 
+(defun nested-listp (x)
+  (and (listp x) (remove-if-not #'listp x)))
+
 (defun generalize-text (x)
   (cond
-    ((consp (car x)) (mapcar (lambda (z) (if (randomp)
-                                             (generalize-text z)
-                                             z))
-                             x))
-    (t (setf *u-diff* '("Duplicated: "))
+    ((nested-listp x) (mapcar (lambda (z) (if (randomp)
+                                              (generalize-text z)
+                                              z))
+                              x))
+    (t (setf x (if (listp x) x (list x)))
+       (setf *u-diff* '("Duplicated: "))
        (sort (append (subset x (lambda (r)
                                  (if (randomp)
                                      (progn (nconc1 *u-diff* r) nil)
@@ -2057,7 +2043,7 @@
     (unless (every (lambda (slot-name)
                      ;; TODO - this *heuristic-agenda* is only used locally, so it could be a loop initializer.
                      ;;        But it might be useful in a public state for GUI presentation?
-                     (setf *heuristic-agenda* (examples 'heuristic))
+                     (setf *heuristic-agenda* (remove-killed (examples 'heuristic)))
                      ;; TODO - is converting R to *rule* here the right thing?
                      (loop for *rule* = (pop *heuristic-agenda*)
                            when *abort-task?*
@@ -2092,6 +2078,7 @@
                    (sub-slots 'if-task-parts))
       (add-task-results 'termination 'aborted))
     (cprin1 64 " The results of this task were: " *task-results* "~%")
+    (cprin1 39 " The new units were: " (assoc 'new-units *task-results*) "~%")
     (cprin1 65 "~%")
     *task-results*))
 
@@ -2122,7 +2109,7 @@
       (snazzy-task)
       (snazzy-concept t u))
     (cprin1 10 "~%Task " *task-num* ": Focusing on " u "~%")
-    (dolist (h (examples 'heuristic))
+    (dolist (h (remove-killed (examples 'heuristic)))
       ;; ORIG: try to apply H to unit U
       (funcall *interp* h u))
     (cprin1 65 "~%")
@@ -2205,9 +2192,12 @@
         (incf (second rarity))
         (incf (third rarity)))
     ;; Rarity = num-successes / total-calls
-    (setf (first rarity) (floor (float (second rarity))
-                                (+ (second rarity)
-                                   (or (third rarity) 0))))))
+    (setf (first rarity) (/ (float (second rarity))
+                            (+ (second rarity) (third rarity))))))
+
+(defun is-rare (p)
+  ;; The ORIG excludes nil rarity
+  (or (not (rarity p)) (leq-nn (car (rarity p)) 0.3)))
 
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.
@@ -2794,7 +2784,7 @@
          (map-and-print *units* #'add-inv))
     (cprin1 -2 "~%OK.  Do you want me to zero out all the time/calling records of all the heuristics?")
     (and (yes-no)
-         (map-and-print (examples 'heuristic)
+         (map-and-print (remove-killed (examples 'heuristic))
                         #'zero-records))))
 
 (defun initial-elim-slots (u)
@@ -2804,7 +2794,17 @@
     (remprop u s)))
 
 
-
+;; work-around that sometimes bad examples are added
+(defun check-props (u p)
+  (let ((d (defn u)))
+    (let* ((r (funcall p u))
+           (r-check (remove-if-not d r)))
+      (assert (not (set-diff r r-check)))
+      r)))
+(defun check-examples (u)
+  (check-props u 'examples))
+(defun check-int-examples (u)
+  (check-props u 'int-examples))
 
 
 ;; only used once, in structure interestingness calculation
@@ -2812,12 +2812,11 @@
   (cond
     ((eq u *old-kb-pu*) *old-kb-pv*)
     (t (setf *old-kb-pu* u)
-       (setf *old-kb-pv* (subset (examples 'binary-pred)
+       (setf *old-kb-pv* (subset (check-examples 'binary-pred)
                                  (lambda (bp)
                                    (and (or (has-high-worth bp)
-                                            (memb bp (int-examples 'binary-pred)))
-                                        (leq-nn (car (rarity bp))
-                                                0.3)
+                                            (memb bp (check-int-examples 'binary-pred)))
+                                        (is-rare bp)
                                         (every #'defn (domain bp))
                                         (run-defn (car (domain bp)) u))))))))
 

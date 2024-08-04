@@ -62,9 +62,10 @@
           ;;                  'FAILED)))
           ;;    (not (eq tmp 'FAILED)))
           ;;  tmp)
-          ((setf tmp (remove nil (mapcar #'examples  (specializations d))))
+          ((setf tmp (remove nil (mapcar #'examples (specializations d))))
            (random-choose (random-choose tmp)))
           ((put d 'examples (gather-examples d))
+           (cprin1 99 "gathered examples for " d "~%")
            (setf *temp-caches* `(remprop ',d 'examples))
            (random-choose (examples d)))
           (t (cprin1 99 "Failed to find value for: " d "~%")
@@ -75,6 +76,7 @@
   (mapcar #'find-example ds))
 
 (defun try-apply-add (args &optional (alg-to-use *alg-to-use*) (cur-unit *cur-unit*))
+  (cprin1 99 "try-apply-add " args " " cur-unit "~%")
   (let ((maybe-failed nil))
     (setf maybe-failed (handler-case (apply alg-to-use args)
                          (warning () '(failed))
@@ -278,8 +280,8 @@
                                                       '("After a unit is synthesized, it is useful to seek instances of it.")
                                                       '((credit-to h4))))
                                               *new-units*))
-                       (setf *task-results* (add-task-results 'new-tasks (cons (length *new-units*)
-                                                                               '(new units must have instances found)))))
+                       (add-task-results 'new-tasks (cons (length *new-units*)
+                                                          '(new units must have instances found))))
   then-add-to-agenda-record (30653 . 87)
   then-print-to-user-record (18543 . 87)
   overall-record (68827 . 72)
@@ -685,6 +687,7 @@
                                                  nil))
                                             (union-prop *cur-unit* 'examples i)))
                                    400))
+                   (cprin1 57 "~%")
                    (and (setf *new-values* (set-difference (examples *cur-unit*) *cur-val*))
                         (push (list 'new-values (list *cur-unit* *cur-slot* *new-values*
                                                       (list "By examining examples of" *space-to-use*
@@ -857,7 +860,7 @@
                                                 (cadr rcu)))
                                     (nf (add-nn (- n-tried (length *new-values*))
                                                 (caddr rcu))))
-                               (list (floor (float nt) (+ nt nf))
+                               (list (/ (float nt) (+ nt nf))
                                      nt nf))))))
   then-compute-record (2296694 . 66)
   then-print-to-user-record (47517 . 66)
@@ -1525,7 +1528,8 @@
                                 (declare (ignore task))
                                 (and (is-a-kind-of *cur-slot* (instances *cur-unit*))
                                      (interestingness *cur-unit*)
-                                     (funcall *cur-slot* *cur-unit*)))
+                                     ;;(funcall *cur-slot* *cur-unit*)
+                                     *new-values*))
   then-print-to-user (lambda (task)
                        (declare (ignore task))
                        (cprin1 13 "A new task was added to the agenda, to see which of the "
@@ -1567,14 +1571,15 @@
                  (dolist (z *space-to-use*)
                    (if (funcall *defn-to-use* z)
                        (progn
-                         (cprin1 55 "+")
+                         (cprin1 39 "+")
                          (union-prop *cur-unit* 'int-examples z)
                          t)
                        (progn
-                         (cprin1 56 "-")
+                         (cprin1 39 "-")
                          nil)))
+                 (cprin1 39 "~%")
                  (when (setf *new-values* (set-difference (funcall *cur-slot* *cur-unit*)
-                                                         *cur-val*))
+                                                          *cur-val*))
                    (add-task-results 'new-values
                                      `(,*cur-unit*
                                        ,*cur-slot*
@@ -1592,14 +1597,12 @@
                             ;;       see if a unit f is interesting, via WorkOnUnit and via
                             ;;       WorkOnTask
                             (and (memb 'category (isa f))
-                                 (setf *space-to-use* (subset (examples 'unary-pred)
+                                 (setf *space-to-use* (subset (check-examples 'unary-pred)
                                                               (lambda (p)
                                                                 (and (or (has-high-worth p)
-                                                                         (memb p (int-examples 'unary-pred)))
-                                                                     (leq-nn (car (rarity p))
-                                                                             0.3)))))
-                                 (>= (length (examples *cur-unit*))
-                                     4)
+                                                                         (memb p (check-int-examples 'unary-pred)))
+                                                                     (is-rare p)))))
+                                 (>= (length (examples *cur-unit*)) 4)
                                  (setf *cur-unit* f)
                                  (setf *cur-slot* 'why-int)))
   worth 500
@@ -1608,14 +1611,12 @@
                        (declare (ignore task))
                        (and (is-a-kind-of *cur-slot* 'why-int)
                             (memb 'category (isa *cur-unit*))
-                            (setf *space-to-use* (subset (examples 'unary-pred)
+                            (setf *space-to-use* (subset (check-examples 'unary-pred)
                                                          (lambda (p)
                                                            (and (or (has-high-worth p)
-                                                                    (memb p (int-examples 'unary-pred)))
-                                                                (leq-nn (car (rarity p))
-                                                                        0.3)))))
-                            (>= (length (examples *cur-unit*))
-                                4)))
+                                                                    (memb p (check-int-examples 'unary-pred)))
+                                                                (is-rare p)))))
+                            (>= (length (examples *cur-unit*)) 4)))
   then-print-to-user (lambda (task)
                        (declare (ignore task))
                        (cprin1 13 "~%Of the " (length *space-to-use*)
@@ -1727,7 +1728,7 @@
                                                                 ,@(mapcar (lambda (d cr)
                                                                             `(run-defn ',d (,cr l)))
                                                                           (domain f)
-                                                                          '(first second third forth fifth sixth seventh))
+                                                                          '(first second third fourth fifth sixth seventh))
                                                                 (memb (apply-alg ',f l) *failure-list*)))))
                                (add-inv new-unit))
                              t))
@@ -1769,7 +1770,7 @@
                                (put new-unit 'isa (copy (isa '(car (domain f)))))
                                (put new-unit 'fast-defn (compile-report
                                                          `(lambda (e)
-                                                           (run-defn ,(car (domain f)) e))))
+                                                           (run-defn ',(car (domain f)) e))))
                                (add-inv new-unit))
                              t))
 
@@ -1812,8 +1813,8 @@
                                (put new-unit 'isa (copy (isa '(car (domain f)))))
                                (put new-unit 'fast-defn (compile-report
                                                          `(lambda (e)
-                                                           (and (run-defn ,(car (domain f)) e)
-                                                                (memb (run-alg ,f e) *failure-list*)))))
+                                                           (and (run-defn ',(car (domain f)) e)
+                                                                (memb (run-alg ',f e) *failure-list*)))))
                                (add-inv new-unit))
                              t))
 (defheuristic h29
