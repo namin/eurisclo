@@ -2182,6 +2182,10 @@
     (setf (first rarity) (/ (float (second rarity))
                             (+ (second rarity) (third rarity))))))
 
+(defun is-rare (p)
+  ;; The ORIG excludes nil rarity
+  (or (not (rarity p)) (leq-nn (car (rarity p)) 0.3)))
+
 (defun interp1 (*rule* *arg-unit*)
   ;; ORIG: assembles pieces of the heuristic rule r, and runs them on argument ArgU.
   (every #'true-if-it-exists (sub-slots 'if-parts)))
@@ -2799,7 +2803,7 @@
                                  (lambda (bp)
                                    (and (or (has-high-worth bp)
                                             (memb bp (check-int-examples 'binary-pred)))
-                                        (or (not (rarity bp)) (leq-nn (car (rarity bp)) 0.3))
+                                        (is-rare bp)
                                         (every #'defn (domain bp))
                                         (run-defn (car (domain bp)) u))))))))
 

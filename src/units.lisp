@@ -2866,7 +2866,7 @@
   interestingness (some (lambda (p)
                           (and (or (has-high-worth p)
                                    (memb p (check-int-examples 'unary-pred)))
-                               (or (not (rarity p)) (leq-nn (car (rarity p)) 0.3))
+                               (is-rare p)
                                (cprin1 88 "High worth and rare predicate: " p "~%")
                                (let* ((tempdef (defn (car (domain p))))
                                       (tempu (subset u (lambda (e) (failed-to-nil (funcall tempdef e))))))

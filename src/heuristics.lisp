@@ -1601,7 +1601,7 @@
                                                               (lambda (p)
                                                                 (and (or (has-high-worth p)
                                                                          (memb p (check-int-examples 'unary-pred)))
-                                                                     (or (not (rarity p)) (leq-nn (car (rarity p)) 0.3))))))
+                                                                     (is-rare p)))))
                                  (>= (length (examples *cur-unit*)) 4)
                                  (setf *cur-unit* f)
                                  (setf *cur-slot* 'why-int)))
