@@ -1164,6 +1164,8 @@
          (push `(movd ',nold ',name) *move-defns*)
          )))
 
+(defun remove-killed (us)
+  (remove-if-not #'unitp us))
 
 (defun kill-unit (u)
   (and (unitp u)
@@ -1192,8 +1194,9 @@
 
 (defun interestingness-rec (u)
   (cond
-    ((member (string u) (mapcar #'string *looked-thru*))
-     ;; dealing with uninterned symbols!
+    ((not (unitp u))
+     nil)
+    ((memb u *looked-thru*)
      nil)
     (t
      (setf *looked-thru* (cons u *looked-thru*))
@@ -1201,32 +1204,6 @@
               (map-union (generalizations u)
                          (lambda (su)
                            (interestingness-rec su)))))))
-
-(defun interestingness_old (u &optional looked-thru)
-  (cond
-    ((member (string u) (mapcar #'string looked-thru))
-     ;; dealing with uninterned symbols!
-     nil)
-    ((progn
-       (setf looked-thru (cons u looked-thru))
-       (cdr looked-thru))
-     (cons-nn (getprop u 'interestingness)
-              (map-union (generalizations u)
-                         (lambda (su)
-                           (interestingness_old su looked-thru)))))
-    ((setf looked-thru (cons-nn (getprop u 'interestingness)
-                                (map-union (generalizations u)
-                                           (lambda (su)
-                                             (interestingness_old su looked-thru)))))
-     ;; ORIG: this must be the initial call
-     (compile-report
-      `(lambda (u)
-         ,(if (null (cdr looked-thru))
-              (car looked-thru)
-              `(or ,@looked-thru)))))
-    (t
-     ;; ORIG: There were no Interestingness predicates anywhere along my ancestry
-     nil)))
 
 (defun more-specific (u v)
   (cond
@@ -2053,7 +2030,7 @@
     (unless (every (lambda (slot-name)
                      ;; TODO - this *heuristic-agenda* is only used locally, so it could be a loop initializer.
                      ;;        But it might be useful in a public state for GUI presentation?
-                     (setf *heuristic-agenda* (examples 'heuristic))
+                     (setf *heuristic-agenda* (remove-killed (examples 'heuristic)))
                      ;; TODO - is converting R to *rule* here the right thing?
                      (loop for *rule* = (pop *heuristic-agenda*)
                            when *abort-task?*
@@ -2119,7 +2096,7 @@
       (snazzy-task)
       (snazzy-concept t u))
     (cprin1 10 "~%Task " *task-num* ": Focusing on " u "~%")
-    (dolist (h (examples 'heuristic))
+    (dolist (h (remove-killed (examples 'heuristic)))
       ;; ORIG: try to apply H to unit U
       (funcall *interp* h u))
     (cprin1 65 "~%")
@@ -2790,7 +2767,7 @@
          (map-and-print *units* #'add-inv))
     (cprin1 -2 "~%OK.  Do you want me to zero out all the time/calling records of all the heuristics?")
     (and (yes-no)
-         (map-and-print (examples 'heuristic)
+         (map-and-print (remove-killed (examples 'heuristic))
                         #'zero-records))))
 
 (defun initial-elim-slots (u)
