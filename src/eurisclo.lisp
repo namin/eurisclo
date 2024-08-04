@@ -1184,9 +1184,20 @@
          (push `(movd ',nold ',name) *move-defns*)
          )))
 
-(defun remove-killed (us &optional u p)
-  ;;(remove-if-not #'unitp us)
-  (let ((r (remove-if (lambda (s) (eq :intern (and (symbolp s) (nth-value 1 (find-symbol (string s)))))) us)))
+(defun heuristics ()
+  (examples 'heuristic nil :keep #'unitp))
+
+(defun remove-killed (us &optional u p &key keep)
+  (unless keep
+    (setf keep
+          (lambda (s)
+            (cond
+              ((or (null s) (eq t s) (numberp s) (consp s)) t)
+              ((not (unitp s))
+               (cprin1 39 "found zombie " s "~%")
+               nil)
+              (t t)))))
+  (let ((r (remove-if-not keep us)))
     (unless (or (null u) (null p) (same-length r us))
       (putprop u p r))
     r))
@@ -1486,9 +1497,9 @@
            (lambda (z)
              (memb u (isa z))))))
 
-(defun examples (u &optional looked-thru)
+(defun examples (u &optional looked-thru &key keep)
   ;; TODO - comment
-  (or (remove-killed (getprop u 'examples) u 'examples)
+  (or (remove-killed (getprop u 'examples) u 'examples :keep keep)
       (unless (memb u looked-thru)
         (push u looked-thru)
         (map-union (specializations u)
@@ -1558,6 +1569,9 @@
        (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*)))))))
     10)))
 
+(defun max-space (baseline)
+  (max 1000 (average *cur-pri* baseline)))
+
 ;; TODO - this num-iterations default seems like it should be a tuning variable
 (defun map-applics (u f &optional (num-iterations 300))
   ;; ORIG: This may have to generate examples, rather than merely calling Applics
@@ -1568,7 +1582,7 @@
               ;; TODO - these next 3 were params, but nothing used them
               (when-to-check (1+ (floor num-iterations 10)))
               (max-real-time (max-real-time))
-              (max-space (average *cur-pri* 1000)))
+              (max-space (max-space 1000)))
     ;; TODO - this length check eliminates an internal loop, but how actually impactful is that? verify that the general 2nd clause will work for everything
     (cprin1 99 "map-applics extra stuff~%")
     (if (= 1 (length gena))
@@ -1600,7 +1614,7 @@
              ;; TODO - these next 3 were optional params, but nothing used them
              (when-to-check (1+ (floor num-iterations 10)))
              (max-real-time (max-real-time))
-             (max-space (average *cur-pri* 500)))
+             (max-space (max-space 500)))
       (if (= 1 (length gena))
           (loop initially (set (car gena) (car (gen-init gen)))
                 for j from 1 to num-iterations
@@ -2078,7 +2092,7 @@
     (unless (every (lambda (slot-name)
                      ;; TODO - this *heuristic-agenda* is only used locally, so it could be a loop initializer.
                      ;;        But it might be useful in a public state for GUI presentation?
-                     (setf *heuristic-agenda* (remove-killed (examples 'heuristic)))
+                     (setf *heuristic-agenda* (heuristics))
                      ;; TODO - is converting R to *rule* here the right thing?
                      (loop for *rule* = (pop *heuristic-agenda*)
                            when *abort-task?*
@@ -2146,7 +2160,7 @@
       (snazzy-task)
       (snazzy-concept t u))
     (cprin1 10 "~%Task " *task-num* ": Focusing on " u "~%")
-    (dolist (h (remove-killed (examples 'heuristic)))
+    (dolist (h (heuristics))
       ;; ORIG: try to apply H to unit U
       (funcall *interp* h u))
     (cprin1 65 "~%")
@@ -2502,10 +2516,14 @@
         (uu nil))
     (loop do (progn
                 (cond
-                  ((setf uu (set-diff *units* units-focused-on)))
+                  ((setf uu (set-diff (setf *units* (remove-killed *units*)) units-focused-on)))
                   (t (setf units-focused-on nil)))
+                (setf u  (maximum uu #'worth))
+                (unless u
+                  (format t "DONE!!!~%")
+                  (return 'eurisko-done))
                 ;; TODO - by just hitting maximum worth, this will always start with the exact same units in order?
-                (push (work-on-unit (maximum uu #'worth)) units-focused-on)
+                (push (work-on-unit u) units-focused-on)
                 (and (is-alto)
                     ;;(null *agenda*)
                     ;;(DSPRESET BitAgenda)
@@ -2822,7 +2840,7 @@
          (map-and-print *units* #'add-inv))
     (cprin1 -2 "~%OK.  Do you want me to zero out all the time/calling records of all the heuristics?")
     (and (yes-no)
-         (map-and-print (remove-killed (examples 'heuristic))
+         (map-and-print (heuristics)
                         #'zero-records))))
 
 (defun initial-elim-slots (u)
@@ -2871,11 +2889,11 @@
       (let ((shorter-name (apply #'pack* (mapcar #'shorten u))))
         (case (floor *verbosity* 20)
           (0 t)
-          (1 (cprin1 0 "    Oh, those long names!  I just had to shorten one.~%"))
+          (1 (cprin1 41 "    Oh, those long names!  I just had to shorten one.~%"))
           ((2 3 4)
-           (cprin1 0 "~%Oh, those long names!!!  I will have to shorten one to " shorter-name "~%"))
+           (cprin1 41 "~%Oh, those long names!!!  I will have to shorten one to " shorter-name "~%"))
           (otherwise
-           (cprin1 20 "~%Oh,t hose long names!!!  I will have to shorten "
+           (cprin1 41 "~%Oh,t hose long names!!!  I will have to shorten "
                    (format nil "~{~a~}" u) " to " shorter-name "~%")))
         ;; FIX - Added this return value. Originally shorter-name was set globally, but nothing read it
         shorter-name)

@@ -42,6 +42,8 @@
 (defvar *added-some*)
 (defvar *involved-units*)
 
+(defun remove-doomed-units ()
+  (setf *new-units* (remove-if-not #'unitp  (set-diff *new-units* *doomed-u*))))
 
 (defun find-example (d &optional rec)
   "Find an example of the unit"
@@ -49,7 +51,7 @@
     (cond ((generator d)
            (let ((lastgen nil))
              (map-examples d (lambda (e)
-                              (setf lastgen e))
+                               (setf lastgen e))
                            (rand 0 50))
              (unless rec
                (cprin1 99 "got a RETURN " lastgen "~%"))
@@ -1412,7 +1414,7 @@
                        (cprin1 14 "~%Hmf! " (length *doomed-u*) " of the " (length *new-units*) " new units "
                                "(namely: " *doomed-u* ") have criterial slots that seem indistinguishable from pre-existing units!"
                                "  They must be destroyed...~%")
-                       (setf *new-units* (set-diff *new-units* *doomed-u*))
+                       (remove-doomed-units)
                        t)
   then-delete-old-concepts (lambda (c)
                              (declare (ignore c))
@@ -1935,7 +1937,7 @@
                                ", and this is similar; "
                                "I have just killed these units: "
                                *doomed-u* "~%")
-                       (setf *new-units* (set-diff *new-units* *doomed-u*))
+                       (remove-doomed-units)
                        t)
   then-delete-old-concepts (lambda (c)
                              (declare (ignore c))
@@ -1973,7 +1975,7 @@
                                " of units by altering their " 'if-working-on-task " slot, by changing a " 'and
                                " into a " 'the-first-of ", and thi sis similar; "
                                "I have just killed these units: " *doomed-u* "~%")
-                       (setf *new-units* (set-diff *new-units* *doomed-u*))
+                       (remove-doomed-units)
                        t)
   then-delete-old-concepts (lambda (c)
                              (declare (ignore c))
@@ -2008,7 +2010,7 @@
                                " of units by altering their " 'c-slot " slot, by changing a " 'c-from " into a " 'c-to
                                ", and this is similar; "
                                "I have just killed these units: " *doomed-u* "~%")
-                       (setf *new-units* (set-diff *new-units* *doomed-u*))
+                       (remove-doomed-units)
                        t)
   then-delete-old-concepts (lambda (c)
                              (declare (ignore c))
@@ -2045,7 +2047,7 @@
                                " of units by altering their " 'if-working-on-task
                                " slot, by changing a " 'and " into a " 'the-first-of ", and this is similar; "
                                " I have just killed these units: " *doomed-u* "~%")
-                       (setf *new-units* (set-diff *new-units* *doomed-u*))
+                       (remove-doomed-units)
                        t)
   then-delete-old-concepts (lambda (c)
                              (declare (ignore c))

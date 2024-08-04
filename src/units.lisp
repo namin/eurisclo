@@ -1772,7 +1772,7 @@
                 binary-pred tertiary-pred pred-cat-by-nargs op-cat-by-nargs extensions
                 restrictions interestingness h22 more-interesting less-interesting
                 int-examples h23 h24 why-int rarity is-a-int h25 h26 h27 28 h29
-                mult-ele-struc-insert int-applics english-1 restric-random-subset-3)
+                mult-ele-struc-insert int-applics english-1 restrict-random-subset-3)
   rarity (1 12 0))
 
 (defunit applic-generator
@@ -2353,7 +2353,7 @@
                     proj-2-of-3 proj-3-of-3 identity-1 restrict inverted-op invert-op
                     set-of-o-pairs relation logic-op structure-of-structures
                     set-of-sets empty-struc non-empty-struc mult-ele-struc-insert
-                    restric-random-subset-3)
+                    restrict-random-subset-3)
   specializations (math-op math-obj set-op unit-op num-op math-pred struc-op list-op
                            bag-op mult-ele-struc-op o-set-op ord-struc-op inverted-op
                            logic-op)
@@ -2381,7 +2381,7 @@
                         set-insert set-delete list-insert list-delete list-delete-1
                         bag-insert bag-delete bag-delete-1 mult-ele-struc-delete-1 o-set-insert
                         o-set-delete o-set-equal bag-equal list-equal ord-struc-equal
-                        set-intersection set-union struc-intersect list-intersect
+                        set-intersect set-union struc-intersect list-intersect
                         o-set-intersect bag-intersect struc-union o-set-union list-union
                         bag-union struc-difference set-difference list-difference
                         o-set-difference bag-difference coalesce parallel-replace
@@ -2391,7 +2391,7 @@
                         proj2 proj-1-of-3 proj-2-of-3 proj-3-of-3 identity-1 restrict invert-op
                         not implies always-nil always-nil-2 always-t always-t-2
                         constant-binary-pred constant-pred constant-unary-pred
-                        undefined-pred mult-ele-struc-insert restric-random-subset-3)
+                        undefined-pred mult-ele-struc-insert restrict-random-subset-3)
   isa (math-concept math-obj anything category)
   specializations (set-op unit-op num-op struc-op list-op bag-op mult-ele-struc-op o-set-op
                           ord-struc-op inverted-op logic-op))
@@ -2713,8 +2713,8 @@
                               set-equal subsetp set-insert set-delete set-intersect set-union
                               set-difference)
   is-range-of (random-subset best-subset good-subset set-insert set-delete set-intersect
-                             set-union set-difference restric-random-subset-2-1
-                             restric-random-subset-1-2)
+                             set-union set-difference restrict-random-subset-2-1
+                             restrict-random-subset-1-2)
   generalizations (anything structure bag list no-mult-ele-struc un-ord-struc)
   specializations (o-set empty-struc non-empty-struc set-of-sets)
   rarity (0 2 2)
