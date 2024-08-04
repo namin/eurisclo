@@ -486,6 +486,18 @@
 (defun print-failed-tasks ()
   (describe 'failed-tasks-dict))
 
+(defun collect-plist (s f)
+  (loop for (k v) on (symbol-plist s) by #'cddr
+        append (funcall f k v)))
+
+(defun get-failed-tasks (k)
+  (collect-plist 'failed-tasks-dict
+                 (lambda (name tasks)
+                   (when (apply #'search
+                                (mapcar (lambda (s) (string-upcase (string s))) (list k name)))
+                     (cprin1 1 "Found " (length tasks) " tasks.~%")
+                     tasks))))
+
 (defun print-run-info ()
   ;;(describe 'heur-total-dict)
   ;;(describe 'heur-success-dict)
@@ -978,6 +990,7 @@
 
 ;;;;-----------------------
 ;;;; Iteration utilities
+
 
 (defun map-plist (list func)
   "Iterates calling (func k v) for every 2 items in the list"
