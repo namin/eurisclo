@@ -2519,11 +2519,9 @@
                   ((setf uu (set-diff (setf *units* (remove-killed *units*)) units-focused-on)))
                   (t (setf units-focused-on nil)))
                 (setf u  (maximum uu #'worth))
-                (unless u
-                  (format t "DONE!!!~%")
-                  (return 'eurisko-done))
-                ;; TODO - by just hitting maximum worth, this will always start with the exact same units in order?
-                (push (work-on-unit u) units-focused-on)
+                (if u
+                    (push (work-on-unit u) units-focused-on)
+                    (format t "Nothing to do!~%"))
                 (and (is-alto)
                     ;;(null *agenda*)
                     ;;(DSPRESET BitAgenda)
