@@ -622,18 +622,24 @@
                  ;;                            (T (QUOTE APPLY*]
                  (setf *cur-val* (funcall *cur-slot* *cur-unit*))
                  (setf *domain-tests* (mapcar #'defn (domain *cur-unit*)))
+                 (setf *max-rule-time* (max-rule-time))
+                 (setf *max-rule-space* (max-rule-space))
                  (dolist (z *space-to-use*)
+                   (when (rule-taking-too-long)
+                     (return nil))
                    (cprin1 39 "z")
                    (map-applics z (lambda (i)
-                                    (and (not (known-applic *cur-unit* (applic-args i)))
-                                         (same-length *domain-tests* (applic-args i))
-                                         ;; TODO - verify translation of "(for DT in DomainTests as A in (ApplicArgs I) ..."
-                                         ;; TODO - could be a 2-list mapc as well
-                                         (loop for dt in *domain-tests*
-                                               for a in (applic-args i)
-                                               always (funcall dt a))
-                                         ;;(cprin1 87 "Found args in domain: " (applic-args i) "~%")
-                                         (try-apply-add (applic-args i))))
+                                    (if (rule-taking-too-long)
+                                        (return nil)
+                                        (and (not (known-applic *cur-unit* (applic-args i)))
+                                             (same-length *domain-tests* (applic-args i))
+                                             ;; TODO - verify translation of "(for DT in DomainTests as A in (ApplicArgs I) ..."
+                                             ;; TODO - could be a 2-list mapc as well
+                                             (loop for dt in *domain-tests*
+                                                   for a in (applic-args i)
+                                                   always (funcall dt a))
+                                             ;;(cprin1 87 "Found args in domain: " (applic-args i) "~%")
+                                             (try-apply-add (applic-args i)))))
                                 50))
                  (cprin1 39 "~%")
                  (and (setf *new-values* (set-difference (applics *cur-unit*)
@@ -676,8 +682,14 @@
                  (setf *cur-val* (funcall *cur-slot* *cur-unit*))
                  (let ((*user-impatience* (max 1 (floor *user-impatience*
                                                         (max 1 (length *space-to-use*))))))
+                   (setf *max-rule-time* (max-rule-time))
+                   (setf *max-rule-space* (max-rule-space))
                    (dolist (z *space-to-use*)
+                     (when (rule-taking-too-long)
+                       (return nil))
                      (map-examples z (lambda (i)
+                                       (when (rule-taking-too-long)
+                                         (return nil))
                                        ;; ORIG: If the proposed example is already on Examples,
                                        ;;       or already on NonExamples, then we can stop immediately
                                        (and (not (member i (examples *cur-unit*)))
@@ -794,11 +806,8 @@
                    ;;                         (T (QUOTE APPLY*)))))
                    (setf *cur-val* (funcall *cur-slot* *cur-unit*))
                    (setf *domain-tests* (mapcar #'defn (domain *cur-unit*)))
-                   (setf *max-rule-time* (+ (clock 0)
-                                            (* *cur-pri* *user-impatience* 5
-                                               (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*)))))))))
-                   (setf *max-rule-space* (* 2 (+ (average *cur-pri* 1000)
-                                                  (count (getprop *cur-unit* *cur-slot*)))))
+                   (setf *max-rule-time* (max-rule-time))
+                   (setf *max-rule-space* (max-rule-space))
                    ;; TODO - only usage of this var ever, even in EUR
                    (setf *rule-cycle-time* (clock 0))
                    (case (length *domain-tests*)

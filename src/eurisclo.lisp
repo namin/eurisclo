@@ -584,10 +584,6 @@
 
 (defun addprop (atom prop new &optional to-head)
   "Adds the NEW value to the end of the proplist for property PROP on ATOM."
-  (assert
-   (if (eq prop 'unary-pred)
-       (= 1 (length (domain new)))
-       t))
   (if to-head
       (push new (get atom prop))
       (setf (get atom prop) (nconc1 (copy (get atom prop)) new))))
@@ -596,10 +592,6 @@
 (declaim (inline putprop put))
 (defun putprop (symbol key value)
   "Set a single property value"
-  (assert
-   (if (eq key 'unary-pred)
-       (every (lambda (p) (= 1 (length (domain p)))) value)
-       t))
   (setf (get symbol key) value))
 
 (defun put (symbol key value)
@@ -1080,7 +1072,7 @@
 
 (defun average-worths (u1 u2)
   "Average the worths of the two units."
-  (/ (add-nn (worth u1) (worth u2)) 2))
+  (floor (add-nn (worth u1) (worth u2)) 2))
 
 (defun has-high-worth (u)
   (and (unitp u)
@@ -1192,8 +1184,12 @@
          (push `(movd ',nold ',name) *move-defns*)
          )))
 
-(defun remove-killed (us)
-  (remove-if-not #'unitp us))
+(defun remove-killed (us &optional u p)
+  ;;(remove-if-not #'unitp us)
+  (let ((r (remove-if (lambda (s) (eq :intern (and (symbolp s) (nth-value 1 (find-symbol (string s)))))) us)))
+    (unless (or (null u) (null p) (same-length r us))
+      (putprop u p r))
+    r))
 
 (defun kill-unit (u)
   (and (unitp u)
@@ -1492,7 +1488,7 @@
 
 (defun examples (u &optional looked-thru)
   ;; TODO - comment
-  (or (getprop u 'examples)
+  (or (remove-killed (getprop u 'examples) u 'examples)
       (unless (memb u looked-thru)
         (push u looked-thru)
         (map-union (specializations u)
@@ -1543,6 +1539,25 @@
 ;;;;
 ;;;; These also obey max time/space when working on tasks
 
+(defun max-rule-time ()
+  (+ (clock 0)
+     (min
+      (* 5 60) ;; 5 minutes
+      (* *cur-pri* *user-impatience*
+         (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*))))))))))
+
+(defun max-rule-space ()
+  (* 2 (+ (average *cur-pri* 1000)
+          (count (getprop *cur-unit* *cur-slot*)))))
+
+(defun max-real-time ()
+  (min
+   60
+   (floor
+    (* *cur-pri* *user-impatience*
+       (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*)))))))
+    10)))
+
 ;; TODO - this num-iterations default seems like it should be a tuning variable
 (defun map-applics (u f &optional (num-iterations 300))
   ;; ORIG: This may have to generate examples, rather than merely calling Applics
@@ -1552,9 +1567,7 @@
               (gena (applic-gen-args gen))
               ;; TODO - these next 3 were params, but nothing used them
               (when-to-check (1+ (floor num-iterations 10)))
-              (max-real-time (* *cur-pri* *user-impatience*
-                                ;; TODO - quite a magic calculation
-                                (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*))))))))
+              (max-real-time (max-real-time))
               (max-space (average *cur-pri* 1000)))
     ;; TODO - this length check eliminates an internal loop, but how actually impactful is that? verify that the general 2nd clause will work for everything
     (cprin1 99 "map-applics extra stuff~%")
@@ -1586,8 +1599,7 @@
              (gena (gen-args gen))
              ;; TODO - these next 3 were optional params, but nothing used them
              (when-to-check (1+ (floor num-iterations 10)))
-             (max-real-time (* *cur-pri* *user-impatience*
-                               (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*))))))))
+             (max-real-time (max-real-time))
              (max-space (average *cur-pri* 500)))
       (if (= 1 (length gena))
           (loop initially (set (car gena) (car (gen-init gen)))
@@ -2117,6 +2129,7 @@
 
 (defun work-on-unit (u)
   (let (*task-results*)
+    (assert (unitp u))
     (incf *task-num*)
     (setf *task* (list (worth u)
                          u
@@ -2158,11 +2171,11 @@
 (defun rule-taking-too-long ()
   ;; TODO - (clock 0) is time of day in milliseconds
   (or (and (> (clock 0) *max-rule-time*)
-           (cprin1 51 " Hmmm...   this rule is taking too long!  On to better rules!~%")
+           (cprin1 39 *rule* " Hmmm...   this rule is taking too long!  On to better rules!~%")
            t)
       (and (> (count (getprop *cur-unit* *cur-slot*))
               *max-rule-space*)
-           (cprin1 51 " Grumble...   this rule is taking too much space!  On to less expansive rules!~%")
+           (cprin1 39 *rule* " Grumble...   this rule is taking too much space!  On to less expansive rules!~%")
            t)))
 
 ;; TODO - these are repetitive with their RULE-TAKING-TOO-* counterparts
@@ -2171,20 +2184,20 @@
     ((<= j 1)
      (setf *map-cycle-time* (clock 0))
      nil)
-    ((and (eq 0 (rem j when-to-check))
+    ((and ;;(eq 0 (rem j when-to-check))
           (>= (- (clock 0) *map-cycle-time*)
               max-real-time))
-     (cprin1 56 " Hmm...   this is taking too long!  On to better things!~%")
+     (cprin1 39 " Hmm...   this is taking too long!  On to better things!~%")
      t)
     (t nil)))
 
 (defun taking-too-much-space (j when-to-check max-space u s)
   (cond
     ((<= j 1) nil)
-    ((and (eq 0 (rem j when-to-check))
+    ((and ;;(eq 0 (rem j when-to-check))
           (>= (count (getprop u s))
               max-space)
-          (cprin1 56 " Grumble...   this is taking too much space!  On to less expansive rules!~%")
+          (cprin1 39 " Grumble...   this is taking too much space!  On to less expansive rules!~%")
           t))
     (t nil)))
 
@@ -2351,8 +2364,8 @@
 
 (defun clock (type)
   (ecase type
-    (0 ;; Current wall-time milliseconds, since lisp startup
-     (floor (get-internal-real-time) (floor internal-time-units-per-second 1000)))
+    (0 ;; Current wall-time seconds, since lisp startup
+     (floor (get-internal-real-time) internal-time-units-per-second))
     (2 ;; Compute time not including GC, since lisp startup
      (floor (get-internal-run-time) (floor internal-time-units-per-second 1000)))))
 
