@@ -423,14 +423,16 @@
   "Returns the items of the list that met the predicate."
   `(remove-if-not ,pred ,list))
 
-(defmacro track-heur-count (key task work &optional (rule nil))
-  (let ((rule-var (gensym)))
-    `(let ((,rule-var (or ,rule *rule*)))
+(defmacro track-heur-count (key work &key rule task)
+  (let ((rule-var (gensym))
+        (task-var (gensym)))
+    `(let ((,rule-var (or ,rule *rule*))
+           (,task-var (or ,task *task*)))
       (increment-heur-count ,key ,rule-var 'heur-total-dict)
        (let ((result ,work))
          (increment-heur-count ,key ,rule-var (if result 'heur-success-dict 'heur-fail-dict))
          (cprin1 39 "Heuristic " ,rule-var " achieved " (if result "success" "failure") "!~%")
-         (unless result (push-failed-task ,key ,rule-var ,task))
+         (unless result (push-failed-task ,key ,rule-var ,task-var))
          result))))
 
 (defun symbol-append (&rest symbols) 
@@ -2068,8 +2070,9 @@
                                          (or (and (is-alto)
                                                   (snazzy-heuristic *rule* slot-name))
                                              t)
-                                         (track-heur-count 'work-on-task task
-                                          (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts)))))
+                                         (track-heur-count 'work-on-task
+                                          (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
+                                             :task task)
                                          (or (and (is-alto)
                                                   (snazzy-concept t))
                                              t)
@@ -2113,10 +2116,10 @@
       ;; ORIG: try to apply H to unit U
       (funcall *interp* h u))
     (cprin1 65 "~%")
-    (track-heur-count 'work-on-unit *task*
+    (track-heur-count 'work-on-unit
      (when *task-results*
       (cprin1 64 " The results of this task so far are: " *task-results* "~%"))
-     '*)
+        :rule '*)
     (cprin1 65 "~%")
     (and (is-alto)
          (snazzy-heuristic nil))
@@ -2212,11 +2215,12 @@
           (snazzy-heuristic *rule*))
      (cprin1 66 "    All the IfParts of " *rule* " " (abbrev *rule*) " are satisfied, so we are applying the ThenParts.~%")
      (cprin1 29 *rule* " applies.~%")
-     (track-heur-count 'interp2 *task*
-      (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
-          (cprin1 39 "~%  All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
-          (update-time-record 'overall-record)
-          t)))))
+     (and
+      (track-heur-count 'interp2
+          (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts)))))
+      (cprin1 39 "~%  All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
+      (update-time-record 'overall-record)
+      t))))
 
 ;; TODO - interp2 was exactly duplicated back-to-back in EUR, I don't think that changes anything?
 
@@ -2231,7 +2235,7 @@
        (cond
          ((> *verbosity* 66) (cprin1 66 " All the IfParts of " *rule* " " (abbrev *rule*) " are satisfied, so we are applying the ThenParts.~%"))
          ((> *verbosity* 29) (cprin1 29 *rule* " applies.~%")))
-       (track-heur-count 'interp3 *task*
+       (track-heur-count 'interp3
         (and (my-time (lambda () (every #'xeq-if-it-exists (sub-slots 'then-parts))))
             (cprin1 39 "~%       All the ThenParts of " *rule* " " (abbrev *rule*) " have been successfully executed.~%")
             (update-time-record 'overall-record)
