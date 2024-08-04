@@ -26,6 +26,7 @@
 (defvar *op-to-use*) ;; TODO - only used in h10
 (defvar *ops-to-use*) ;; TODO - only used in h15
 (defvar *res-u*) ;; TODO - only used in h21, but also never declared in EUR
+(defvar *more-interesting-slot*) ;; only used in h22
 (defvar *rule-cycle-time*) ;; TODO - only ever written once, never read, even in EUR
 (defvar *reas*) ;; TODO - only used in h24, never declared in EUR
 
@@ -1529,8 +1530,10 @@
                                 (and (is-a-kind-of *cur-slot* (instances *cur-unit*))
                                      (interestingness *cur-unit*)
                                      (funcall *cur-slot* *cur-unit*)
-                                     *new-values* ;; added to avoid infinite agenda adding
-                                     ))
+                                     ;; constraint to avoid infinite additions in a row
+                                     (setf *more-interesting-slot* (car (more-interesting (instances *cur-unit*))))
+                                     (or (not (eq *more-interesting-slot* *cur-slot*))
+                                         *new-values*)))
   then-print-to-user (lambda (task)
                        (declare (ignore task))
                        (cprin1 13 "A new task was added to the agenda, to see which of the "
@@ -1541,7 +1544,7 @@
                         (declare (ignore task))
                         (add-to-agenda `((,(average-worths *cur-unit* 'h22)
                                           ,*cur-unit*
-                                          ,(car (more-interesting (instances *cur-unit*)))
+                                          ,*more-interesting-slot*
                                           ("Now that instances of a unit have been found, see if any are unusually interesting")
                                           (credit-to h22))))
                         (add-task-results 'new-tasks '("1 unit's instances must be evaluated for Interestingness")))
