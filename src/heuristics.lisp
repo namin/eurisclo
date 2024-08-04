@@ -62,9 +62,10 @@
           ;;                  'FAILED)))
           ;;    (not (eq tmp 'FAILED)))
           ;;  tmp)
-          ((setf tmp (remove nil (mapcar #'examples  (specializations d))))
+          ((setf tmp (remove nil (mapcar #'examples (specializations d))))
            (random-choose (random-choose tmp)))
           ((put d 'examples (gather-examples d))
+           (cprin1 99 "gathered examples for " d "~%")
            (setf *temp-caches* `(remprop ',d 'examples))
            (random-choose (examples d)))
           (t (cprin1 99 "Failed to find value for: " d "~%")
@@ -75,6 +76,7 @@
   (mapcar #'find-example ds))
 
 (defun try-apply-add (args &optional (alg-to-use *alg-to-use*) (cur-unit *cur-unit*))
+  (cprin1 99 "try-apply-add " args " " cur-unit "~%")
   (let ((maybe-failed nil))
     (setf maybe-failed (handler-case (apply alg-to-use args)
                          (warning () '(failed))
@@ -685,6 +687,7 @@
                                                  nil))
                                             (union-prop *cur-unit* 'examples i)))
                                    400))
+                   (cprin1 57 "~%")
                    (and (setf *new-values* (set-difference (examples *cur-unit*) *cur-val*))
                         (push (list 'new-values (list *cur-unit* *cur-slot* *new-values*
                                                       (list "By examining examples of" *space-to-use*
@@ -1525,7 +1528,8 @@
                                 (declare (ignore task))
                                 (and (is-a-kind-of *cur-slot* (instances *cur-unit*))
                                      (interestingness *cur-unit*)
-                                     (funcall *cur-slot* *cur-unit*)))
+                                     ;;(funcall *cur-slot* *cur-unit*)
+                                     *new-values*))
   then-print-to-user (lambda (task)
                        (declare (ignore task))
                        (cprin1 13 "A new task was added to the agenda, to see which of the "
@@ -1593,10 +1597,10 @@
                             ;;       see if a unit f is interesting, via WorkOnUnit and via
                             ;;       WorkOnTask
                             (and (memb 'category (isa f))
-                                 (setf *space-to-use* (subset (examples 'unary-pred)
+                                 (setf *space-to-use* (subset (check-examples 'unary-pred)
                                                               (lambda (p)
                                                                 (and (or (has-high-worth p)
-                                                                         (memb p (int-examples 'unary-pred)))
+                                                                         (memb p (check-int-examples 'unary-pred)))
                                                                      (leq-nn (car (rarity p))
                                                                              0.3)))))
                                  (>= (length (examples *cur-unit*))
@@ -1609,10 +1613,10 @@
                        (declare (ignore task))
                        (and (is-a-kind-of *cur-slot* 'why-int)
                             (memb 'category (isa *cur-unit*))
-                            (setf *space-to-use* (subset (examples 'unary-pred)
+                            (setf *space-to-use* (subset (check-examples 'unary-pred)
                                                          (lambda (p)
                                                            (and (or (has-high-worth p)
-                                                                    (memb p (int-examples 'unary-pred)))
+                                                                    (memb p (check-int-examples 'unary-pred)))
                                                                 (leq-nn (car (rarity p))
                                                                         0.3)))))
                             (>= (length (examples *cur-unit*))

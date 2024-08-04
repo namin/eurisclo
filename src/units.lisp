@@ -190,8 +190,10 @@
   isa (repr-concept anything category pred-cat-by-nargs op-cat-by-nargs)
   examples (always-t always-nil constant-unary-pred undefined-pred not)
   fast-defn (lambda (f)
-              (and (memb 'pred (isa f))
-                   (eq 1 (arity f))))
+              (let ((r (and (memb 'pred (isa f))
+                            (eq 1 (arity f)))))
+                (cprin1 99 "unary-pred called for " f " with result " r "~%")
+                r))
   rarity (0.1182796 11 82))
 
 (defunit binary-pred
@@ -2858,9 +2860,9 @@
   is-range-of (struc-insert struc-delete struc-intersect struc-union struc-difference)
   interestingness (some (lambda (p)
                           (and (or (has-high-worth p)
-                                   (memb p (int-examples 'unary-pred)))
-                               (leq-nn (car (rarity p)) 0.3)
-                               (cprin1 39 "High worth and rare predicate: " p "~%")
+                                   (memb p (check-int-examples 'unary-pred)))
+                               (or (not (rarity p)) (leq-nn (car (rarity p)) 0.3))
+                               (cprin1 88 "High worth and rare predicate: " p "~%")
                                (let* ((tempdef (defn (car (domain p))))
                                       (tempu (subset u (lambda (e) (failed-to-nil (funcall tempdef e))))))
                                  (when tempu
@@ -2878,7 +2880,7 @@
                                                    " form a very special subset; namely, there are in relation " temp2
                                                    " to the entire structure.~%")
                                            (cprin1 40 "    They are, by the way: " tempdef2 "~%")))))))))
-                        (examples 'unary-pred))
+                        (check-examples 'unary-pred))
   rarity (0 2 2))
 
 (defunit sub-slots

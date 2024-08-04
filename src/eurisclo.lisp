@@ -557,6 +557,10 @@
 
 (defun addprop (atom prop new &optional to-head)
   "Adds the NEW value to the end of the proplist for property PROP on ATOM."
+  (assert
+   (if (eq prop 'unary-pred)
+       (= 1 (length (domain new)))
+       t))
   (if to-head
       (push new (get atom prop))
       (setf (get atom prop) (nconc1 (get atom prop) new))))
@@ -565,6 +569,10 @@
 (declaim (inline putprop put))
 (defun putprop (symbol key value)
   "Set a single property value"
+  (assert
+   (if (eq key 'unary-pred)
+       (every (lambda (p) (= 1 (length (domain p)))) value)
+       t))
   (setf (get symbol key) value))
 
 (defun put (symbol key value)
@@ -1048,7 +1056,7 @@
 
 (defun has-high-worth (u)
   (and (unitp u)
-       (> (worth u) 800)))
+       (> (worth u) 500))) ;; orig: 800
 
 (defun less-worth (u1 u2)
   (cond
@@ -1173,20 +1181,14 @@
 
 
 (defun interestingness (u)
-  (failed-to-nil
-   (or
-    (getprop u 'interestingness-cached)
-    (progn
-      (setf *looked-thru* nil)
-      (let ((results (interestingness-rec u)))
-        (let ((r (if results
-                     (compile-report
-                      `(lambda (u)
-                         ,(if (null (cdr results))
-                              (car results)
-                              `(or ,@results))))
-                     'failed)))
-          (putprop u 'interestingness-cached r)))))))
+  (setf *looked-thru* nil)
+  (let ((results (interestingness-rec u)))
+    (when results
+      (compile-report
+       `(lambda (u)
+          ,(if (null (cdr results))
+               (car results)
+               `(or ,@results)))))))
 
 (defun interestingness-rec (u)
   (cond
@@ -1260,6 +1262,7 @@
 
 
 (defun dwim-union-prop (a p v &optional flag)
+  (cprin1 99 "dwim-union-prop " a " " p " " v " " flag "~%")
   ;; TODO - comment
   (cond
     ((unitp a) (union-prop a p v flag))
@@ -1272,10 +1275,10 @@
           (union-prop a p v flag)
           (putprop a 'isa '(slot))
           (new-unit a (and (inverse p)
-                     (unitp v)
-                     (let ((tmp8 (find-if #'unitp (funcall (car (inverse p)) v))))
-                       (cprin1 0 " ... Copying from " tmp8 "~%")
-                       tmp8)))))))
+                           (unitp v)
+                           (let ((tmp8 (find-if #'unitp (funcall (car (inverse p)) v))))
+                             (cprin1 0 " ... Copying from " tmp8 "~%")
+                             tmp8)))))))
 
 (defun new-unit (n nold &optional fullflg)
   (prog1 (cond
@@ -1541,6 +1544,7 @@
                                 (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*))))))))
               (max-space (average *cur-pri* 1000)))
     ;; TODO - this length check eliminates an internal loop, but how actually impactful is that? verify that the general 2nd clause will work for everything
+    (cprin1 99 "map-applics extra stuff~%")
     (if (= 1 (length gena))
         (loop initially (set (car gena) (car (applic-gen-init gen)))
               for j from 1 to num-iterations
@@ -2795,7 +2799,14 @@
     (remprop u s)))
 
 
-
+;; work-around that sometimes bad examples are added
+(defun check-props (u p)
+  (let ((d (defn u)))
+    (remove-if-not d (funcall p u))))
+(defun check-examples (u)
+  (check-props u 'examples))
+(defun check-int-examples (u)
+  (check-props u 'int-examples))
 
 
 ;; only used once, in structure interestingness calculation
@@ -2803,12 +2814,11 @@
   (cond
     ((eq u *old-kb-pu*) *old-kb-pv*)
     (t (setf *old-kb-pu* u)
-       (setf *old-kb-pv* (subset (examples 'binary-pred)
+       (setf *old-kb-pv* (subset (check-examples 'binary-pred)
                                  (lambda (bp)
                                    (and (or (has-high-worth bp)
-                                            (memb bp (int-examples 'binary-pred)))
-                                        (leq-nn (car (rarity bp))
-                                                0.3)
+                                            (memb bp (check-int-examples 'binary-pred)))
+                                        (or (not (rarity bp)) (leq-nn (car (rarity bp)) 0.3))
                                         (every #'defn (domain bp))
                                         (run-defn (car (domain bp)) u))))))))
 
