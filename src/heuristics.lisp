@@ -1774,7 +1774,7 @@
                                (put new-unit 'isa (copy (isa '(car (domain f)))))
                                (put new-unit 'fast-defn (compile-report
                                                          `(lambda (e)
-                                                           (run-defn ,(car (domain f)) e))))
+                                                           (run-defn ',(car (domain f)) e))))
                                (add-inv new-unit))
                              t))
 
@@ -1817,8 +1817,8 @@
                                (put new-unit 'isa (copy (isa '(car (domain f)))))
                                (put new-unit 'fast-defn (compile-report
                                                          `(lambda (e)
-                                                           (and (run-defn ,(car (domain f)) e)
-                                                                (memb (run-alg ,f e) *failure-list*)))))
+                                                           (and (run-defn ',(car (domain f)) e)
+                                                                (memb (run-alg ',f e) *failure-list*)))))
                                (add-inv new-unit))
                              t))
 (defheuristic h29
