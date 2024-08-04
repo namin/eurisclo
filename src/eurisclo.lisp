@@ -1213,16 +1213,22 @@
 (defun interestingness (u)
   (setf *looked-thru* nil)
   (interestingness-rec u)
+  (cprin1 39 "for " u " interestingness looked-thru: " *looked-thru* "; ")
   (let ((results
           (map-union
            *looked-thru*
-           (lambda (w) (getprop w 'interestingness)))))
+           (lambda (w)
+             (let ((v (getprop w 'interestingness)))
+               (when v
+                 (cprin1 39 "found for " w " ")
+                 (list v)))))))
+    (cprin1 39 (length results) " results total.~%")
     (when results
-    (compile-report
-     `(lambda (u)
-        ,(if (null (cdr results))
-             (car results)
-             `(or ,@results)))))))
+      (compile-report
+       `(lambda (u)
+          ,(if (null (cdr results))
+               (car results)
+               `(or ,@results)))))))
 
 (defun interestingness-rec (u)
   (cond

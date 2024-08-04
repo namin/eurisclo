@@ -1528,8 +1528,9 @@
                                 (declare (ignore task))
                                 (and (is-a-kind-of *cur-slot* (instances *cur-unit*))
                                      (interestingness *cur-unit*)
-                                     ;;(funcall *cur-slot* *cur-unit*)
-                                     *new-values*))
+                                     (funcall *cur-slot* *cur-unit*)
+                                     *new-values* ;; added to avoid infinite agenda adding
+                                     ))
   then-print-to-user (lambda (task)
                        (declare (ignore task))
                        (cprin1 13 "A new task was added to the agenda, to see which of the "
