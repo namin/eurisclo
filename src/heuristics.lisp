@@ -623,6 +623,7 @@
                  (setf *cur-val* (funcall *cur-slot* *cur-unit*))
                  (setf *domain-tests* (mapcar #'defn (domain *cur-unit*)))
                  (dolist (z *space-to-use*)
+                   (cprin1 39 "z")
                    (map-applics z (lambda (i)
                                     (and (not (known-applic *cur-unit* (applic-args i)))
                                          (same-length *domain-tests* (applic-args i))
@@ -633,7 +634,8 @@
                                                always (funcall dt a))
                                          ;;(cprin1 87 "Found args in domain: " (applic-args i) "~%")
                                          (try-apply-add (applic-args i))))
-                                100))
+                                50))
+                 (cprin1 39 "~%")
                  (and (setf *new-values* (set-difference (applics *cur-unit*)
                                                          *cur-val*))
                       ;; TODO - does the differing value between PUSH and (setf *task-results* (cons ...)) make a difference here?
