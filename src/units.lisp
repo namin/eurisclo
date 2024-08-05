@@ -2888,7 +2888,7 @@
                                                        (run-alg p2 tempu tempdef2))))
                                                (ok-bin-preds tempu))))
                            (when temp2
-                             (cprin1 14 "~%The set of elements of size" (length u)
+                             (cprin1 14 "~%The set of elements of size " (length u)
                                      " which satisfy the rare predicate " p
                                      " form a very special subset; namely, there are in relation " temp2
                                      " to the entire structure.~%")

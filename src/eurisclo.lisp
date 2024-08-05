@@ -1147,7 +1147,8 @@
 
 (defun new-name (a)
   ;; TODO - I _think_ this is equivalent. Original increments a counter until the name it packs isn't UNITP.
-  (gensym (symbol-name a)))
+  ;; FIX: gensym returns an uninterned symbol, eg '#:foo, so intern it, eg 'foo!
+  (intern (string (gensym (symbol-name a)))))
 
 (defun create-unit (name &optional nold)
   ;; TODO - comment
