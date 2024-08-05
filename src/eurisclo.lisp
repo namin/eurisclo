@@ -1386,7 +1386,7 @@
   ;; TODO - comment
   (when (and (slotp s)
              (not (functionp s))
-             (not (function-symbol-or-nil s)))
+             (not (symbol-function-or-nil s)))
     (push s *slots*)
     (define-slot s))
   s)
