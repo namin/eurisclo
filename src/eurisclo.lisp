@@ -2219,15 +2219,18 @@
 
 
 (defun run-alg (f &rest args)
-  (let ((val
-          (if (every #'alivep (cons f args))
-              (cond
-                ((functionp f) (apply f args))
-                ((alg f) (apply (alg f) args))
-                ((symbol-function-or-nil f) (apply f args))
-                (t nil))
-              'failed)))
-    (accumulate-rarity f (not (eq val 'failed)))
+  (let* ((has-zombies nil)
+         (val
+           (if (every #'alivep (cons f args))
+               (cond
+                 ((functionp f) (apply f args))
+                 ((alg f) (apply (alg f) args))
+                 ((symbol-function-or-nil f) (apply f args))
+                 (t nil))
+               (progn
+                 (setf has-zombies t)
+                 nil))))
+    (accumulate-rarity f (not (or (eq val 'failed) has-zombies)))
     val))
 
 (defun run-defn (f &rest args)
