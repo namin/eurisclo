@@ -753,7 +753,12 @@
                                        (car (domain f)))
                          (is-a-kind-of s2 (cadr (domain f))))
                     (let ((nam (create-unit (pack* 'repeat2- f '-on- 's-with-a- s2 '-as-param))))
-                      (put nam 'isa (cons 'binary-op (remove 'tertiary-op (isa f))))
+                      (put nam 'isa
+                           ;;(cons 'binary-op (remove 'tertiary-op (isa f)))
+                           (let* ((r (isa f))
+                                  (r (subst 'binary-op 'tertiary-op r))
+                                  (r (subst 'binary-pred 'teritiary-pred r)))
+                             r))
                       (put nam 'worth (average-worths 'repeat2 (average-worths f (average-worths s s2))))
                       (put nam 'arity 2)
                       (put nam 'domain (list s s2))

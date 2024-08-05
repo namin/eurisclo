@@ -1291,7 +1291,7 @@
     ((symbolp a)
      ;; TODO - this was a raw PRIN1 in the original? everything from here down was prin1
      (cprin1 0 a " is not yet a unit; make it one?")
-     (and (yes-no)
+     (and nil;;(yes-no)
           (union-prop a p v flag)
           (putprop a 'isa '(slot))
           (new-unit a (and (inverse p)
@@ -1934,7 +1934,7 @@
                              z))
                        x))
     ((fixp x)
-     (if (eq x 0)
+     (if (<= x 0)
          nil
          (caddr (setf *u-diff* (list x '-> (rand 1 x))))))
     ((numberp x) (caddr (setf *u-diff* (list x '-> (floor (rand 0 (floor (* x 200)))
