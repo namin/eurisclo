@@ -1185,7 +1185,7 @@
          )))
 
 (defun heuristics ()
-  (examples 'heuristic nil :keep #'unitp))
+  (examples 'heuristic))
 
 (defun alivep_old (s)
   (cond
@@ -1198,13 +1198,17 @@
     (t t)))
 
 (defun alivep (s)
-  (not (getprop s 'zombie)))
+  (if (getprop s 'zombie)
+      (progn
+        (cprin1 39 "Found zombie " s "~%")
+        nil)
+      t))
 
 
-(defun remove-killed (us &optional u p &key keep )
-  (setf keep #'alivep)
-  (let ((r (remove-if-not keep us)))
+(defun remove-killed (us &optional u p)
+  (let ((r (remove-if-not #'alivep us)))
     (unless (or (null u) (null p) (same-length r us))
+      (cprin1 39 "Discarding zombies in " p " of unit " u "~%")
       (putprop u p r))
     r))
 
@@ -1507,9 +1511,9 @@
            (lambda (z)
              (memb u (isa z))))))
 
-(defun examples (u &optional looked-thru &key keep)
+(defun examples (u &optional looked-thru)
   ;; TODO - comment
-  (or (remove-killed (getprop u 'examples) u 'examples :keep keep)
+  (or (remove-killed (getprop u 'examples) u 'examples)
       (unless (memb u looked-thru)
         (push u looked-thru)
         (map-union (specializations u)
