@@ -1204,7 +1204,7 @@
 
 (defun kill-unit (u)
   (and (unitp u)
-       (not (memb u *new-u*))
+       ;;(not (memb u *new-u*))
        (push (list u (copy (getproplist u))) *undo-kill*))
   (setf *units* (delete u *units*))
   (setf *new-u* (delete u *new-u*))
@@ -1291,7 +1291,7 @@
     ((symbolp a)
      ;; TODO - this was a raw PRIN1 in the original? everything from here down was prin1
      (cprin1 0 a " is not yet a unit; make it one?")
-     (and nil;;(yes-no)
+     (and nil ;;(yes-no)
           (union-prop a p v flag)
           (putprop a 'isa '(slot))
           (new-unit a (and (inverse p)
@@ -2078,6 +2078,7 @@
        (cprin1 1 "~%Task " *task-num* "~%")))
     (setf *cur-pri* (extract-priority task))
     (setf *cur-unit* (extract-unit-name task))
+    (assert (alivep *cur-unit*))
     (setf *cur-slot* (extract-slot-name task))
     ;; TODO - *old-val* is never read. However, there is an *old-value* but that's probably different?
     (setf *cur-val* (setf *old-val* (funcall *cur-slot* *cur-unit*)))

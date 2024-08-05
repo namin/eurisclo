@@ -599,14 +599,16 @@
                        (declare (ignore task))
                        (and (eq *cur-slot* 'applics)
                             (setf *alg-to-use* (alg *cur-unit*))
-                            (setf *space-to-use* (subset (set-diff (subset (or (generalizations *cur-unit*)
-                                                                               (self-intersect (mapappend (isa *cur-unit*)
-                                                                                                          'examples)))
-                                                                           'applics)
-                                                                   (cons *cur-unit* (specializations *cur-unit*)))
-                                                         (lambda (f)
-                                                           (eq (arity f)
-                                                               (arity *cur-unit*)))))))
+                            (setf *space-to-use*
+                                  (remove-killed
+                                   (subset (set-diff (subset (or (generalizations *cur-unit*)
+                                                                 (self-intersect (mapappend (isa *cur-unit*)
+                                                                                            'examples)))
+                                                             'applics)
+                                                     (cons *cur-unit* (specializations *cur-unit*)))
+                                           (lambda (f)
+                                             (eq (arity f)
+                                                 (arity *cur-unit*))))))))
   then-print-to-user (lambda (task)
                        (declare (ignore task))
                        (cprin1 13 "~%Instantiated " *cur-unit* "; found "
@@ -670,9 +672,11 @@
                        (declare (ignore task))
                        (and (eq *cur-slot* 'examples)
                             (setf *defn-to-use* (defn *cur-unit*))
-                            (setf *space-to-use* (set-diff (or (generalizations *cur-unit*)
-                                                               (self-intersect (mapappend (isa *cur-unit*) 'examples)))
-                                                           (cons *cur-unit* (specializations *cur-unit*))))))
+                            (setf *space-to-use*
+                                  (remove-killed
+                                   (set-diff (or (generalizations *cur-unit*)
+                                                 (self-intersect (mapappend (isa *cur-unit*) 'examples)))
+                                             (cons *cur-unit* (specializations *cur-unit*)))))))
   then-print-to-user (lambda (task)
                        (declare (ignore task))
                        (cprin1 13 "~%Instantiated " *cur-unit* "; found "
