@@ -1592,7 +1592,9 @@
 ;; TODO - this num-iterations default seems like it should be a tuning variable
 (defun map-applics (u f &optional (num-iterations 300))
   ;; ORIG: This may have to generate examples, rather than merely calling Applics
-  (mapc f (applics u))
+  (let ((xs (applics u)))
+    (cprin1 41 "mapping " (length xs) " applics.~%")
+    (mapc f xs))
   (when-let* ((gen (applic-generator u))
               (genf (applic-gen-build gen))
               (gena (applic-gen-args gen))
@@ -1651,7 +1653,9 @@
                            gena
                            genf))))
       ;; Else
-      (mapc f (examples u)))))
+      (let ((exs (examples u)))
+        (cprin1 41 "mapping " (length exs) " examples.~%")
+        (mapc f exs)))))
 
 
 
