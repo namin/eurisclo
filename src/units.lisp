@@ -2868,29 +2868,32 @@
   in-domain-of (struc-equal struc-insert struc-delete struc-intersect struc-union
                             struc-difference member memb)
   is-range-of (struc-insert struc-delete struc-intersect struc-union struc-difference)
-  interestingness (some (lambda (p)
-                          (and (or (has-high-worth p)
-                                   (memb p (check-int-examples 'unary-pred)))
-                               (is-rare p)
-                               (cprin1 88 "High worth and rare predicate: " p "~%")
-                               (let* ((tempdef (defn (car (domain p))))
-                                      (tempu (subset u (lambda (e) (failed-to-nil (funcall tempdef e))))))
-                                 (when tempu
-                                   (let ((tempdef2 (subset tempu (lambda (e) (failed-to-nil (run-alg p e))))))
-                                     (when tempdef2
-                                       (cprin1 39 "Potential interesting subset of length: " (length tempdef2) "~%")
-                                       (let ((temp2 (find-if (lambda (p2)
-                                                               (failed-to-nil
-                                                                (and (run-defn (cadr (domain p2)) tempdef2)
-                                                                     (run-alg p2 tempu tempdef2))))
-                                                             (ok-bin-preds tempu))))
-                                         (when temp2
-                                           (cprin1 14 "~%The set of elements of " u
-                                                   " which satisfy the rare predicate " p
-                                                   " form a very special subset; namely, there are in relation " temp2
-                                                   " to the entire structure.~%")
-                                           (cprin1 40 "    They are, by the way: " tempdef2 "~%")))))))))
-                        (check-examples 'unary-pred))
+  interestingness
+  (progn
+    (setf u (subset u #'alivep))
+    (some (lambda (p)
+            (and (or (has-high-worth p)
+                     (memb p (check-int-examples 'unary-pred)))
+                 (is-rare p)
+                 (cprin1 88 "High worth and rare predicate: " p "~%")
+                 (let* ((tempdef (defn (car (domain p))))
+                        (tempu (subset u (lambda (e) (failed-to-nil (funcall tempdef e))))))
+                   (when tempu
+                     (let ((tempdef2 (subset tempu (lambda (e) (failed-to-nil (run-alg p e))))))
+                       (when tempdef2
+                         (cprin1 39 "Potential interesting subset of length: " (length tempdef2) "~%")
+                         (let ((temp2 (find-if (lambda (p2)
+                                                 (failed-to-nil
+                                                  (and (run-defn (cadr (domain p2)) tempdef2)
+                                                       (run-alg p2 tempu tempdef2))))
+                                               (ok-bin-preds tempu))))
+                           (when temp2
+                             (cprin1 14 "~%The set of elements of " u
+                                     " which satisfy the rare predicate " p
+                                     " form a very special subset; namely, there are in relation " temp2
+                                     " to the entire structure.~%")
+                             (cprin1 40 "    They are, by the way: " tempdef2 "~%")))))))))
+          (check-examples 'unary-pred)))
   rarity (0 2 2))
 
 (defunit sub-slots

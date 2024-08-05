@@ -183,7 +183,7 @@
                   then-delete-old-concepts-record then-modify-slots then-modify-slots-failed-record
                   then-modify-slots-record then-parts then-print-to-user then-print-to-user-failed-record
                   then-print-to-user-record to-delete to-delete-1 transpose unitized-alg unitized-defn
-                  why-int worth))
+                  why-int worth zombie))
 (defvar *slots-to-elim-initially* nil)
 (defvar *special-non-units* '(t nil))
 (defvar *synth-u* '(h19-criterial h5-criterial h5-good h-avoid-2-and h-avoid-3-first h-avoid-if-working))
@@ -1187,31 +1187,41 @@
 (defun heuristics ()
   (examples 'heuristic nil :keep #'unitp))
 
-(defun alivep (s)
+(defun alivep_old (s)
   (cond
+    ((not (getprop s 'zombie))
+     t)
     ((or (null s) (eq t s) (numberp s) (consp s)) t)
     ((not (unitp s))
      (cprin1 39 "found zombie " s "~%")
      nil)
     (t t)))
 
+(defun alivep (s)
+  (not (getprop s 'zombie)))
+
+
 (defun remove-killed (us &optional u p &key keep )
-  (unless keep (setf keep #'alivep))
+  (setf keep #'alivep)
   (let ((r (remove-if-not keep us)))
     (unless (or (null u) (null p) (same-length r us))
       (putprop u p r))
     r))
 
 (defun kill-unit (u)
-  (and (unitp u)
-       ;;(not (memb u *new-u*))
+  (assert (alivep u))
+  (and nil
+       (unitp u)
+       (not (memb u *new-u*))
        (push (list u (copy (getproplist u))) *undo-kill*))
   (setf *units* (delete u *units*))
   (setf *new-u* (delete u *new-u*))
   (setf *synth-u* (delete u *synth-u*))
   (setf *slots* (delete u *slots*))
-  (loop for s in (copy-list (getproplist u)) by #'cddr
-        do (kill-slot s u))
+  (putprop u 'zombie t)
+  (when nil
+    (loop for s in (copy-list (getproplist u)) by #'cddr
+          do (kill-slot s u)))
   (setf *agenda* (subset *agenda* (lambda (ta)
                                     (not (eq u (extract-unit-name ta))))))
   '|.|)
@@ -2217,38 +2227,23 @@
           t))
     (t nil)))
 
-
-
 (defun run-alg (f &rest args)
-  (let* ((has-zombies nil)
-         (val
-           (if (every #'alivep (cons f args))
-               (cond
-                 ((functionp f) (apply f args))
-                 ((alg f) (apply (alg f) args))
-                 ((symbol-function-or-nil f) (apply f args))
-                 (t nil))
-               (progn
-                 (setf has-zombies t)
-                 (cprin1 30 "zombie with run-alg " f "~%")
-                 nil))))
-    (accumulate-rarity f (not (or (eq val 'failed) has-zombies)))
+  (let ((val
+          (cond
+            ((functionp f) (apply f args))
+            ((alg f) (apply (alg f) args))
+            ((symbol-function-or-nil f) (apply f args))
+            (t nil))))
+    (accumulate-rarity f (eq val 'failed))
     val))
 
 (defun run-defn (f &rest args)
-  (let* ((has-zombies nil)
-         (val
-           (if (every #'alivep (cons f args))
-               (cond
-                 ((functionp f) (apply f args))
-                 ((defn f) (apply (defn f) args))
-                 ((symbol-function-or-nil f) (apply f args))
-                 (t nil))
-               (progn
-                 (setf has-zombies t)
-                 (cprin1 30 "zombie with run-defn " f "~%")
-                 nil))))
-    (accumulate-rarity f (not (or (eq val 'failed) has-zombies)))
+  (let ((val (cond
+               ((functionp f) (apply f args))
+               ((defn f) (apply (defn f) args))
+               ((symbol-function-or-nil f) (apply f args))
+               (t nil))))
+    (accumulate-rarity f (not (eq val 'failed)))
     val))
 
 (defun accumulate-rarity (unit success?)
