@@ -2,27 +2,34 @@
 
 ## Statistics on Success of Heuristics
 
-These statistics suggest that heuristics H8, H9, H15 and H23 should be investigated for always failing, in that order of how often they are called.
+Output of `(print-run-info)`:
 
 ```
-H8 -> 0% (5755 tries)
-H9 -> 0% (462 tries)
-H15 -> 0% (55 tries)
-H23 -> 0% (3 tries)
-WORK-ON-UNIT -> 34% (20018 tries)
-H6 -> 45% (11517 tries)
-H10 -> 67% (55 tries)
-H11 -> 92% (5951 tries)
-H7 -> 100% (6841 tries)
-H5-GOOD -> 100% (2790 tries)
-H5-CRITERIAL -> 100% (2790 tries)
-H1 -> 100% (2790 tries)
-H19-CRITERIAL -> 100% (729 tries)
-H4 -> 100% (729 tries)
-H26 -> 100% (72 tries)
-H25 -> 100% (72 tries)
-H22 -> 100% (3 tries)
-Tasks: 41224
+H10-WORK-ON-TASK -> 7% (94 tries)
+H15-WORK-ON-TASK -> 11% (94 tries)
+H9-WORK-ON-TASK -> 26% (1301 tries)
+H6-WORK-ON-TASK -> 40% (150 tries)
+H23-WORK-ON-TASK -> 48% (676 tries)
+*-WORK-ON-UNIT -> 51% (4660 tries)
+H18-WORK-ON-TASK -> 51% (1087 tries)
+H11-WORK-ON-TASK -> 51% (808 tries)
+H8-WORK-ON-TASK -> 52% (590 tries)
+H7-INTERP2 -> 100% (2008 tries)
+H22-WORK-ON-TASK -> 100% (676 tries)
+H4-WORK-ON-TASK -> 100% (616 tries)
+H19-CRITERIAL-WORK-ON-TASK -> 100% (589 tries)
+H26-INTERP2 -> 100% (378 tries)
+H25-INTERP2 -> 100% (378 tries)
+H24-INTERP2 -> 100% (291 tries)
+H17-WORK-ON-TASK -> 100% (190 tries)
+H16-INTERP2 -> 100% (190 tries)
+H28-INTERP2 -> 100% (179 tries)
+H27-INTERP2 -> 100% (179 tries)
+H5-GOOD-WORK-ON-TASK -> 100% (31 tries)
+H5-CRITERIAL-WORK-ON-TASK -> 100% (31 tries)
+H1-INTERP2 -> 100% (31 tries)
+H-AVOID-IF-WORKING-WORK-ON-TASK -> 100% (1 tries)
+Tasks: 8984
 ```
 
 ## Sample Output of a Random Task
