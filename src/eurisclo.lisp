@@ -2220,7 +2220,7 @@
 
 (defun run-alg (f &rest args)
   (let ((val
-          (if (every #'alivep args)
+          (if (every #'alivep (cons f args))
               (cond
                 ((functionp f) (apply f args))
                 ((alg f) (apply (alg f) args))
@@ -2233,7 +2233,7 @@
 (defun run-defn (f &rest args)
   (let* ((has-zombies nil)
          (val
-           (if (every #'alivep args)
+           (if (every #'alivep (cons f args))
                (cond
                  ((functionp f) (apply f args))
                  ((defn f) (apply (defn f) args))
