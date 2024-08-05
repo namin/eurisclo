@@ -2229,6 +2229,7 @@
                  (t nil))
                (progn
                  (setf has-zombies t)
+                 (cprin1 30 "zombie with run-alg " f "~%")
                  nil))))
     (accumulate-rarity f (not (or (eq val 'failed) has-zombies)))
     val))
@@ -2244,6 +2245,7 @@
                  (t nil))
                (progn
                  (setf has-zombies t)
+                 (cprin1 30 "zombie with run-defn " f "~%")
                  nil))))
     (accumulate-rarity f (not (or (eq val 'failed) has-zombies)))
     val))
