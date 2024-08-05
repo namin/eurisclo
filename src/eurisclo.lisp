@@ -1956,12 +1956,13 @@
 
 (defun specialize-text (x)
   (cond
-    ((consp (car x)) (mapcar (lambda (z)
+    ((nested-listp x) (mapcar (lambda (z)
                                (if (randomp)
                                    (specialize-text z)
                                    z))
                              x))
-    (t (setf *u-diff* '("Eliminated: "))
+    (t (setf x (if (listp x) x (list x)))
+       (setf *u-diff* '("Eliminated: "))
        (subset x (lambda (r)
                    (if (randomp)
                        (progn
