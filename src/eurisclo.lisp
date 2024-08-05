@@ -1192,7 +1192,7 @@
     ((not (getprop s 'zombie))
      t)
     ((or (null s) (eq t s) (numberp s) (consp s)) t)
-    ((not (unitp s))
+    ((= 0 (worth s))
      (cprin1 39 "found zombie " s "~%")
      nil)
     (t t)))
@@ -1213,6 +1213,7 @@
     r))
 
 (defun kill-unit (u)
+  (cprin1 40 "killing " u "~%")
   (assert (alivep u))
   (and nil
        (unitp u)
@@ -1222,6 +1223,7 @@
   (setf *new-u* (delete u *new-u*))
   (setf *synth-u* (delete u *synth-u*))
   (setf *slots* (delete u *slots*))
+  (putprop u 'worth 0)
   (putprop u 'zombie t)
   (when nil
     (loop for s in (copy-list (getproplist u)) by #'cddr
@@ -2869,7 +2871,7 @@
     (let* ((r (funcall p u))
            (r-check (remove-if-not d r)))
       (assert (not (set-diff r r-check)))
-      r)))
+      (remove-killed r))))
 (defun check-examples (u)
   (check-props u 'examples))
 (defun check-int-examples (u)

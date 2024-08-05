@@ -2888,11 +2888,11 @@
                                                        (run-alg p2 tempu tempdef2))))
                                                (ok-bin-preds tempu))))
                            (when temp2
-                             (cprin1 14 "~%The set of elements of " u
+                             (cprin1 14 "~%The set of elements of size" (length u)
                                      " which satisfy the rare predicate " p
                                      " form a very special subset; namely, there are in relation " temp2
                                      " to the entire structure.~%")
-                             (cprin1 40 "    They are, by the way: " tempdef2 "~%")))))))))
+                             (cprin1 43 "    They are, by the way: " tempdef2 "~%")))))))))
           (check-examples 'unary-pred)))
   rarity (0 2 2))
 
