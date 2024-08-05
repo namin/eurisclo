@@ -32,7 +32,7 @@ The three diffs of interests are:
 ## How to run (step-by-step explanations)
 
 * Fire up a common lisp REPL in the src folder.
-  For example: `C-u M-x slime` then `sbcl --control-stack-size 1000  --dynamic-space-size 10000000"`, or just `M-x slime` for your default config.
+  For example: `C-u M-x slime` then `sbcl --control-stack-size 1000  --dynamic-space-size 10000000"`, or just `M-x slime` for default config.
 
 * Make sure you have Quicklisp loaded one way or another.
 
@@ -46,7 +46,7 @@ The three diffs of interests are:
 
 * Next it will ask to initialize. You probably want to do this, but so far as I can tell, nothing really changes if you don't.
 
-* Next it asks to run. If you want to examine or change the initial state, you can answer no to this, and it will return you to the REPL. You can then start at a later point after you've performed whatever examinations or with `(start)`, optionally passing an eternal flag as an argument with `(start t)` if you want the program to run forever.
+* Next it asks to run. If you want to examine or change the initial state, you can answer no to this, and it will return you to the REPL. You can then start at a later point after you've performed whatever examinations or with `(start)`, optionally passing an eternal flag as an argument with `(start t)` if you want the program to run forever. As a second optional argument, you can pass it a thunk with a stop condition, for example `(lambda () (remove-if-not #'int-examples (remove 'binary-pred *units*)))` to stop when the condition has been satisfied. The example thunk stops when any interesting example is discovered (the unit `binary-pred` is removed, because it has some built-in interesting examples).
 
 * Once you have the program running, you will probably encounter some kind of error you will need to debug. Enjoy!
 
