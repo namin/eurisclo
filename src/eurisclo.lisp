@@ -1187,16 +1187,16 @@
 (defun heuristics ()
   (examples 'heuristic nil :keep #'unitp))
 
-(defun remove-killed (us &optional u p &key keep)
-  (unless keep
-    (setf keep
-          (lambda (s)
-            (cond
-              ((or (null s) (eq t s) (numberp s) (consp s)) t)
-              ((not (unitp s))
-               (cprin1 39 "found zombie " s "~%")
-               nil)
-              (t t)))))
+(defun alivep (s)
+  (cond
+    ((or (null s) (eq t s) (numberp s) (consp s)) t)
+    ((not (unitp s))
+     (cprin1 39 "found zombie " s "~%")
+     nil)
+    (t t)))
+
+(defun remove-killed (us &optional u p &key keep )
+  (unless keep (setf keep #'alivep))
   (let ((r (remove-if-not keep us)))
     (unless (or (null u) (null p) (same-length r us))
       (putprop u p r))
@@ -2219,21 +2219,30 @@
 
 
 (defun run-alg (f &rest args)
-  (let ((val (cond
-               ((functionp f) (apply f args))
-               ((alg f) (apply (alg f) args))
-               ((symbol-function-or-nil f) (apply f args))
-               (t nil))))
+  (let ((val
+          (if (every #'alivep args)
+              (cond
+                ((functionp f) (apply f args))
+                ((alg f) (apply (alg f) args))
+                ((symbol-function-or-nil f) (apply f args))
+                (t nil))
+              'failed)))
     (accumulate-rarity f (not (eq val 'failed)))
     val))
 
 (defun run-defn (f &rest args)
-  (let ((val (cond
-               ((functionp f) (apply f args))
-               ((defn f) (apply (defn f) args))
-               ((symbol-function-or-nil f) (apply f args))
-               (t nil))))
-    (accumulate-rarity f (not (eq val 'failed)))
+  (let* ((has-zombies nil)
+         (val
+           (if (every #'alivep args)
+               (cond
+                 ((functionp f) (apply f args))
+                 ((defn f) (apply (defn f) args))
+                 ((symbol-function-or-nil f) (apply f args))
+                 (t nil))
+               (progn
+                 (setf has-zombies t)
+                 nil))))
+    (accumulate-rarity f (not (or (eq val 'failed) has-zombies)))
     val))
 
 (defun accumulate-rarity (unit success?)
