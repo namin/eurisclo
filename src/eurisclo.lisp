@@ -1574,9 +1574,10 @@
       (* *cur-pri* *user-impatience*
          (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*))))))))))
 
-(defun max-rule-space ()
-  (* 2 (+ (average *cur-pri* 1000)
-          (count (getprop *cur-unit* *cur-slot*)))))
+(defun max-rule-space (&optional (factor 2))
+  (* factor
+     (+ (average *cur-pri* 1000)
+        (count (getprop *cur-unit* *cur-slot*)))))
 
 (defun max-real-time ()
   (min

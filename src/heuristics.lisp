@@ -80,24 +80,20 @@
 
 (defun try-apply-add (args &optional (alg-to-use *alg-to-use*) (cur-unit *cur-unit*))
   (cprin1 99 "try-apply-add " args " " cur-unit "~%")
-  (if (rule-taking-too-long)
-    (progn
-      (cprin1 39 "Don't even wanna know!")
-      nil)
-    (let ((maybe-failed nil))
-      (setf maybe-failed (handler-case (apply alg-to-use args)
-                           (warning () '(failed))
-                           (serious-condition (condition) '(failed))
-                           (:no-error (c) (list c))))
-      (assert (listp maybe-failed))
-      (union-prop cur-unit 'applics
-                  (list args maybe-failed)
-                  nil
-                  (setf maybe-failed (or (null maybe-failed)
-                                         (eq maybe-failed 'failed)
+  (let ((maybe-failed nil))
+    (setf maybe-failed (handler-case (apply alg-to-use args)
+                         (warning () '(failed))
+                         (serious-condition (condition) '(failed))
+                         (:no-error (c) (list c))))
+    (assert (listp maybe-failed))
+    (union-prop cur-unit 'applics
+                (list args maybe-failed)
+                nil
+                (setf maybe-failed (or (null maybe-failed)
+                                       (eq maybe-failed 'failed)
                                        (and (listp maybe-failed)
                                             (eq (car maybe-failed) 'failed)))))
-      (cprin1 62 (if maybe-failed "-" "+")))))
+    (cprin1 62 (if maybe-failed "-" "+"))))
 
 ;; TODO - some of the higher numbered heuristics were out of lexical order in EUR, does that indicate anything about the age of the various units/heuristics in there? would it matter? I guess if some things are suspected incomplete, it could be useful to 
 
@@ -631,7 +627,7 @@
                  (setf *cur-val* (funcall *cur-slot* *cur-unit*))
                  (setf *domain-tests* (mapcar #'defn (domain *cur-unit*)))
                  (setf *max-rule-time* (max-rule-time))
-                 (setf *max-rule-space* (max-rule-space))
+                 (setf *max-rule-space* (max-rule-space 12))
                  (dolist (z *space-to-use*)
                    (when (rule-taking-too-long)
                      (return nil))
@@ -648,7 +644,7 @@
                                                    always (funcall dt a))
                                              ;;(cprin1 87 "Found args in domain: " (applic-args i) "~%")
                                              (try-apply-add (applic-args i)))))
-                                50))
+                                30))
                  (cprin1 39 "~%")
                  (and (setf *new-values* (set-difference (applics *cur-unit*)
                                                          *cur-val*))
