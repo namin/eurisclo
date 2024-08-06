@@ -1116,7 +1116,8 @@
 (defun good-choose (l)
   "Get one of the best units from the list. Best has 50% chance, 2nd best as 25% chance, etc."
   (setf l (resolve-examples l))
-  (find-if #'randomp (sort-by-worths (copy-list l))))
+  ;; ORIG is missing nreverse, but then it keeps choosing the worse!
+  (find-if #'randomp (nreverse (sort-by-worths (copy-list l)))))
 
 (defun good-subset (l)
   "Get some number of the highest worth units from the list."
@@ -1574,6 +1575,7 @@
       (* *cur-pri* *user-impatience*
          (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*))))))))))
 
+;; TODO: probably need to account for verbosity
 (defun max-rule-space (&optional (factor 2))
   (* factor
      (+ (average *cur-pri* 1000)
