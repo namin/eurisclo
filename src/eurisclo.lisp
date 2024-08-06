@@ -586,7 +586,7 @@
   "Adds the NEW value to the end of the proplist for property PROP on ATOM."
   (if to-head
       (push new (get atom prop))
-      (setf (get atom prop) (nconc1 (copy (get atom prop)) new))))
+      (setf (get atom prop) (nconc1 (copy-list (get atom prop)) new))))
 
 ;; TODO - no idea why PUTPROP vs PUT is used in the code. PUT is not standard IL.
 (declaim (inline putprop put))
