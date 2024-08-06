@@ -2245,7 +2245,7 @@
             ((alg f) (apply (alg f) args))
             ((symbol-function-or-nil f) (apply f args))
             (t nil))))
-    (accumulate-rarity f (eq val 'failed))
+    (accumulate-rarity f (not (memb val *failure-list*)))
     val))
 
 (defun run-defn (f &rest args)
@@ -2254,7 +2254,7 @@
                ((defn f) (apply (defn f) args))
                ((symbol-function-or-nil f) (apply f args))
                (t nil))))
-    (accumulate-rarity f (not (eq val 'failed)))
+    (accumulate-rarity f (not (memb val *failure-list*)))
     val))
 
 (defun accumulate-rarity (unit success?)
