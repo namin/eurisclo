@@ -1570,10 +1570,9 @@
 
 (defun max-rule-time ()
   (+ (clock 0)
-     (min
-      (* 5 60) ;; 5 minutes
-      (* *cur-pri* *user-impatience*
-         (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*))))))))))
+     (floor (* *cur-pri* *user-impatience*
+               (1+ (floor (+ 0.5 (log (max 2 (1+ *verbosity*)))))))
+            10)))
 
 ;; TODO: probably need to account for verbosity
 (defun max-rule-space (&optional (factor 2))
