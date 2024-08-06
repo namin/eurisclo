@@ -4,7 +4,8 @@
   :author "White Flame"
   :license "Do not use, in any way, for any purpose"
   
-  :depends-on (:alexandria)
+  :depends-on (:alexandria
+               :bordeaux-threads)
 
   :serial t
   :components ((:file "eurisclo")
