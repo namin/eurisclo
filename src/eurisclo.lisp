@@ -1109,8 +1109,8 @@
   (setf l (resolve-examples l))
   (if l
       ;; Get a random number of the highest worth units?
-      (nreverse (nth (sort-by-worths (copy-list l))
-                     (rand 1 (length l))))
+      (nth (nreverse (sort-by-worths (copy-list l))) ;; ORIG fix: swap nth and nreverse
+           (rand 1 (length l)))
       nil))
 
 (defun good-choose (l)
