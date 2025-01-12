@@ -4,15 +4,9 @@ This is a work in progress.
 It seems to work a bit.
 See some [sample output](output.md).
 
-The three diffs of interests are:
-- [Angle's working branch (as of July 2024) vs my wip branch diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:working...namin:eurisclo:wip?expand=1).
-- [Angle's wip branch vs my angle-wip branch diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:angle...namin:eurisclo:angle-my?expand=1).
-- [Angle's heuristic-tracking branch vs my heuristic-tracking-my branch diff](https://github.com/namin/eurisclo/compare/namin:eurisclo:heuristic-tracking...namin:eurisclo:heuristic-tracking-my?expand=1).
-- [Angle and my task-tracking branch vs my zombies branch diff](https://github.com/namin/eurisclo/compare/failed-task-tracking...namin:eurisclo:zombies?expand=1)
-
 ## Related links
 
-- [Angle's work is on Gitlab](https://gitlab.com/AngularAngel/eurisclo/-/branches).
+- [Angle's work is on Gitlab](https://gitlab.com/AngularAngel/eurisclo/-/branches). See the [diff history](diff.md) between our branches.
 - [Interlisp Medley version](https://github.com/seveno4/EURISKO) -- runs out of the fixed stack space.
 - [Wiki](https://github.com/white-flame/eurisko/wiki).
 
