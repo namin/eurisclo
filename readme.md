@@ -17,10 +17,20 @@ See some [sample output](output.md).
 ```
 (ql:quickload "eurisclo")
 (in-package :eurisclo)
-(eurisko 100 t)
+(eurisko 100 t) ;; 40 is also a good less noisy level
 ;; wait ad infinitum...
 (stop)
 (print-run-info)
+```
+
+## How to inspect running process (examples)
+
+```
+(get-failed-tasks "H24") ;; C-c C-p
+*units*
+(remove nil (mapcar #'why-int *units*))
+(best-subset (examples 'binary-pred))
+(worth  (maximum *units* #'worth))
 ```
 
 ## How to run (step-by-step explanations)
