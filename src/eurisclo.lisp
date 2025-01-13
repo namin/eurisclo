@@ -2574,13 +2574,26 @@
   (force-output)
   (read))
 
+(defvar *batch-mode* nil
+  "Enable batch mode for yes-no prompts.")
+
+(defvar *batch-responses* '(Y N N)
+  "A list of predefined responses for batch mode.")
+
 (defun yes-no (&optional i prompt)
+  "Handle yes-no prompts interactively or via batch responses."
   (when (and prompt (null i))
     (cprin1 -1 "~%" prompt " (Y or N): "))
+(if *batch-mode*
+      (if *batch-responses*
+          (let ((response (pop *batch-responses*)))
+            (format t "DEBUG: Batch response: ~A~%" response)
+            (memb response '(y yes)))
+          (error "No more responses available in *batch-responses*."))
   (memb (or i (progn
                 (force-output)
                 (read*)))
-        '(y yes)))
+        '(y yes))))
 
 (defun cprin1 (verbosity &rest args)
   "Prints all arguments to the console, if *VERBOSITY* is high enough to include it."
@@ -2719,19 +2732,23 @@
 ;;;; GUI display
 
 (defun snazzy-agenda ()
-  (warn "GUI not implemented"))
+  ;;(warn "GUI not implemented")
+  )
 
 (defun snazzy-concept (flag &optional c)
   (declare (ignore flag c))
-  (warn "GUI not implemented"))
+  ;;(warn "GUI not implemented")
+  )
 
 (defun snazzy-heuristic (&optional h s)
   (declare (ignore h s))
-  (warn "GUI not implemented"))
+  ;;(warn "GUI not implemented")
+  )
 
 (defun snazzy-task (&optional task)
   (declare (ignore task))
-  (warn "GUI not implemented"))
+  ;;(warn "GUI not implemented")
+  )
 
 
 
