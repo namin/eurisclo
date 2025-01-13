@@ -474,14 +474,17 @@
    :key #'cadr ;; first sort by success percentage
  ))
 
-(defun print-run-stats ()
-  (mapc
-   (lambda (r)
-     (let ((h (car r))
-           (success-percent (cadr r))
-           (total-count (cadddr r)))
-       (cprin1 1 (format nil "~a -> ~a% (~a tries)~%" h success-percent total-count))))
-   (run-stats)))
+(defun print-run-stats (&optional run-stats)
+  (progn
+    (mapc
+     (lambda (r)
+       (let ((h (car r))
+             (success-percent (cadr r))
+             (success-count (caddr r))
+             (total-count (cadddr r)))
+         (cprin1 1 (format nil "~a -> ~a% (~a tries, ~a successes)~%" h success-percent total-count success-count))))
+     (or run-stats (run-stats)))
+    *task-num*))
 
 (defun print-failed-tasks ()
   (describe 'failed-tasks-dict))
