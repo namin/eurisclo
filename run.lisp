@@ -4,12 +4,10 @@
 (in-package :eurisclo)
 
 (defun initialize-seed (seed)
-  "Initialize the random state with the given seed."
-  (setf *random-state* (make-random-state (make-random-state t)))
-  (let ((seeded-state (make-random-state nil)))
-    (dotimes (i seed)
-      (random 1 seeded-state))
-    (setf *random-state* seeded-state)))
+  "Initialize the global random state with the given seed."
+  (setf *random-state* (make-random-state nil))
+  (dotimes (i seed)
+    (random 1)))
 
 (defun run-stat (&optional (key 'H24-INTERP2))
   (let ((m (remove-if-not #'(lambda (x) (eq key (car x))) (run-stats))))
@@ -41,4 +39,5 @@
     (format t "Running eurisko with seed ~A~%" seed)
     (eurisko 0 t)
     (start t (lambda () (stop-criteria (run-stat))))
+    (format t "Stats: ~A~%" (run-stats))
     (format t "Success metric: ~A~%" (success-criteria (run-stat)))))
