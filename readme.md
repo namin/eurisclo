@@ -54,4 +54,4 @@ See some [sample output](output.md).
 
 * Once you have the program running, you will probably encounter some kind of error you will need to debug. Enjoy!
 
-License: (c) 2023-2024 White Flame, Angle, Nada Amin.
+License: (c) 2023-2025 White Flame, Angle, Nada Amin.
