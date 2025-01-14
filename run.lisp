@@ -3,13 +3,20 @@
 (ql:quickload "eurisclo")
 (in-package :eurisclo)
 
+(defun hash-seed (seed)
+  "Hash a numeric SEED deterministically into a smaller, bounded value."
+  (mod (abs (logxor seed (ash seed -3))) most-positive-fixnum))
+
 (defun initialize-seed (seed)
-  "Initialize the global random state with the given seed."
-  (setf *random-state* (make-random-state nil))
-  (dotimes (i seed)
-    (random 1)))
+  "Initialize a random-state deterministically based on a hashed SEED."
+  (let ((state (make-random-state nil))) ; Fresh, isolated random state
+    ;; Progress the random state deterministically
+    (dotimes (i (hash-seed seed))
+      (random most-positive-fixnum state))
+    state))
 
 (defun run-stat (&optional (key 'H24-INTERP2))
+  "Retrieve statistics for a specific heuristic."
   (let ((m (remove-if-not #'(lambda (x) (eq key (car x))) (run-stats))))
     (if m
         (car m)
@@ -35,7 +42,7 @@
 
 (let ((seed-arg (cadr sb-ext:*posix-argv*)))
   (let ((seed (parse-integer seed-arg)))
-    (initialize-seed seed)
+    (setf *random-state* (initialize-seed seed)) ; Use our seeded random state
     (format t "Running eurisko with seed ~A~%" seed)
     (eurisko 0 t)
     (start t (lambda () (stop-criteria (run-stat))))
