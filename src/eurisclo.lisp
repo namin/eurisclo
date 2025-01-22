@@ -2480,13 +2480,13 @@
      (setf *used-slots* nil)
      (cprin1 1 "Units~%")
      (dolist (u *units*)
-       (cprin1 1 "Unit ~s~%" u)
+       (cprin1 1 "Unit" u)
        (dolist (sl (propnames u))
          (or (memb sl *used-slots*)
              (memb sl *sysprops*)
              (progn
                (push sl *used-slots*)
-               (cprin1 1 "Defining slot ~s~%" sl)
+               (cprin1 1 "Defining slot" sl)
                (define-slot sl)))))
      (cprin1 1 "Units2~%")
      (dolist (u *units*)
@@ -2497,9 +2497,9 @@
      ;; TODO - lots of assumptions that the slots list are of symbols, which can be default sorted by name
      (setf *used-slots* (sort *used-slots* #'default-sort))
      (setf *unused-slots* (sort *unused-slots* #'default-sort))
-     (cprin1 1 "unused-slots~%")
+     (cprin1 1 "unused-slots")
      (mapc #'define-slot *unused-slots*)
-     (cprin1 1 "Done!!~%")
+     (cprin1 1 "Done!!")
      (cprin1 0 (length (setf *slots* (merge 'list
                                             (copy-list *used-slots*)
                                             (copy-list *unused-slots*)
