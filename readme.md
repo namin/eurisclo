@@ -9,6 +9,7 @@ See some [sample output](output.md).
 - [Angle's work is on Gitlab](https://gitlab.com/AngularAngel/eurisclo/-/branches). See the [diff history](diff.md) between our branches.
 - [Interlisp Medley version](https://github.com/seveno4/EURISKO) -- runs out of the fixed stack space.
 - [Wiki](https://github.com/white-flame/eurisko/wiki).
+- [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/namin/eurisclo).
 
 ## [How to setup](setup.md)
 
