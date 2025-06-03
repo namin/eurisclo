@@ -18,6 +18,28 @@
       (format t "Will use mock responses only.~%"))))
 
 ;;; =============================================================================
+;;; SHARED HEURISTIC VARIABLES
+;;; =============================================================================
+
+;; Declare variables that are defined in heuristics.lisp but needed here
+;; Using defvar without initial values so they don't override existing definitions
+
+(defvar *old-value*)
+(defvar *new-value*)
+(defvar *slot-to-change*)
+(defvar *new-units*)
+(defvar *creditors*)
+(defvar *conjectures*)
+(defvar *all-units*)
+(defvar *deleted-units*)
+(defvar *task-num*)
+(defvar *task*)
+(defvar *abort-task?*)
+
+;; LLM-specific variables
+(defvar *llm-context* nil "Context information for LLM operations")
+
+;;; =============================================================================
 ;;; LLM INFRASTRUCTURE
 ;;; =============================================================================
 
@@ -394,8 +416,10 @@
                              (when *new-value*
                                (let ((new-unit (create-unit *cur-unit* *cur-unit*)))
                                  (put new-unit *slot-to-change* *new-value*)
-                                 (setf *new-units* (list new-unit))
-                                 (push (list 'new-units new-unit) *task-results*)
+                                 (setf *new-units* (cdr (assoc 'new-units *task-results*)))
+                                 (if *new-units*
+                                     (nconc *new-units* (list new-unit))
+                                     (push (list 'new-units new-unit) *task-results*))
                                  (put new-unit 'creditors '(h31-llm-slot-evolution))
                                  (if (is-a-kind-of *cur-slot* 'specializations)
                                      (progn
@@ -578,3 +602,4 @@
 
 ;; Auto-initialize when loaded
 (initialize-llm-heuristics)
+
