@@ -2,8 +2,20 @@
 ;;;; Enhanced heuristics using Large Language Models for intelligent slot evolution
 ;;;; Author: AI Assistant
 ;;;; Date: 2025
+;;;; Dependencies: drakma (HTTP client), cl-json (JSON handling)
 
 (in-package "EURISCLO")
+
+;; Load required libraries for HTTP requests and JSON
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (handler-case
+      (progn
+        (ql:quickload :drakma :silent t)
+        (ql:quickload :cl-json :silent t))
+    (error (e)
+      (format t "Warning: Could not load HTTP dependencies: ~A~%" e)
+      (format t "Install with: (ql:quickload '(:drakma :cl-json))~%")
+      (format t "Will use mock responses only.~%"))))
 
 ;;; =============================================================================
 ;;; LLM INFRASTRUCTURE
@@ -34,23 +46,23 @@
      :base-url "https://generativelanguage.googleapis.com/v1beta/models/"
      :headers (("Content-Type" . "application/json"))
      :auth-header "x-goog-api-key"
-     :request-format gemini)
+     :request-format :gemini)
     (:openai
      :base-url "https://api.openai.com/v1/chat/completions"
      :headers (("Content-Type" . "application/json"))
      :auth-header "Authorization"
      :auth-prefix "Bearer "
-     :request-format openai)
+     :request-format :openai)
     (:claude
      :base-url "https://api.anthropic.com/v1/messages"
      :headers (("Content-Type" . "application/json")
                ("anthropic-version" . "2023-06-01"))
      :auth-header "x-api-key"
-     :request-format claude)
+     :request-format :claude)
     (:ollama
      :base-url "http://localhost:11434/api/generate"
      :headers (("Content-Type" . "application/json"))
-     :request-format ollama)))
+     :request-format :ollama)))
 
 ;;; =============================================================================
 ;;; LLM INTERFACE FUNCTIONS
@@ -64,46 +76,59 @@
   "Format request for the specified LLM provider"
   (let ((format-type (getf (get-provider-config (or provider *llm-provider*)) :request-format)))
     (case format-type
-      (gemini
+      (:gemini
        `(("contents" . ((("parts" . ((("text" . ,prompt)))))))
          ("generationConfig" . (("temperature" . ,(or temperature *llm-temperature*))
                                ("maxOutputTokens" . ,(or max-tokens *llm-max-tokens*))))))
-      (openai
+      (:openai
        `(("model" . ,(or model *llm-model*))
          ("messages" . ((("role" . "user") ("content" . ,prompt))))
          ("temperature" . ,(or temperature *llm-temperature*))
          ("max_tokens" . ,(or max-tokens *llm-max-tokens*))))
-      (claude
+      (:claude
        `(("model" . ,(or model *llm-model*))
          ("max_tokens" . ,(or max-tokens *llm-max-tokens*))
          ("messages" . ((("role" . "user") ("content" . ,prompt))))))
-      (ollama
+      (:ollama
        `(("model" . ,(or model *llm-model*))
          ("prompt" . ,prompt)
          ("options" . (("temperature" . ,(or temperature *llm-temperature*)))))))))
 
 (defun extract-llm-response (response provider)
   "Extract text content from LLM response based on provider format"
-  (case provider
-    (:gemini
-     (nested-getf response '("candidates" 0 "content" "parts" 0 "text")))
-    (:openai
-     (nested-getf response '("choices" 0 "message" "content")))
-    (:claude
-     (nested-getf response '("content" 0 "text")))
-    (:ollama
-     (getf response "response"))))
+  (cond
+    ;; If it's already a string (mock response), return as-is
+    ((stringp response) response)
+    
+    ;; Handle real API responses
+    ((listp response)
+     (case provider
+       (:gemini
+        (nested-getf response '("candidates" 0 "content" "parts" 0 "text")))
+       (:openai
+        (nested-getf response '("choices" 0 "message" "content")))
+       (:claude
+        (nested-getf response '("content" 0 "text")))
+       (:ollama
+        (nested-getf response '("response")))
+       (otherwise
+        (format nil "Unknown provider: ~A" provider))))
+    
+    ;; Fallback
+    (t (format nil "~A" response))))
 
 (defun nested-getf (plist keys)
   "Navigate nested property lists/alists"
-  (reduce (lambda (obj key)
-            (cond ((listp obj)
-                   (if (numberp key)
-                       (nth key obj)
-                       (cdr (assoc key obj :test #'equal))))
-                  (t nil)))
-          keys
-          :initial-value plist))
+  (when plist
+    (reduce (lambda (obj key)
+              (when obj
+                (cond ((listp obj)
+                       (if (numberp key)
+                           (nth key obj)
+                           (cdr (assoc key obj :test #'equal))))
+                      (t nil))))
+            keys
+            :initial-value plist)))
 
 (defun call-llm-api (prompt &key provider model temperature max-tokens)
   "Make HTTP request to LLM API"
@@ -125,25 +150,37 @@
     
     ;; Build full URL for Gemini
     (when (eq provider :gemini)
-      (setf base-url (concatenate 'string base-url (or model *llm-model*) ":generateContent")))
+      (setf base-url (concatenate 'string base-url (or model *llm-model*) ":generateContent?key=" *llm-api-key*)))
     
-    ;; Make HTTP request (this would need an actual HTTP client library)
-    ;; For now, we'll return a mock response
     (handler-case
-        (progn
-          (cprin1 99 "LLM API Call: " provider " - " prompt "~%")
-          ;; TODO: Replace with actual HTTP client call
-          ;; (http-request base-url :method :post :headers headers :content (json:encode-json request-data))
-          
-          ;; Mock response for testing
-          (case provider
-            (:gemini '(("candidates" . ((("content" . (("parts" . ((("text" . "Mock Gemini response")))))))))
-            (:openai '(("choices" . ((("message" . (("content" . "Mock OpenAI response")))))))))
-            (:claude '(("content" . ((("text" . "Mock Claude response"))))))
-            (:ollama '(("response" . "Mock Ollama response")))))
+        (if *llm-api-key*
+            ;; Make real API call
+            (progn
+              (cprin1 99 "Making real LLM API call to " provider "~%")
+              (multiple-value-bind (response status-code)
+                  (drakma:http-request base-url
+                                     :method :post
+                                     :content-type "application/json"
+                                     :additional-headers headers
+                                     :content (cl-json:encode-json request-data)
+                                     :want-stream nil)
+                (if (= status-code 200)
+                    (cl-json:decode-json-from-string response)
+                    (progn
+                      (cprin1 39 "API Error - Status: " status-code " Response: " response "~%")
+                      nil))))
+            ;; Fall back to mock response if no API key
+            (progn
+              (cprin1 99 "No API key - using mock response for " provider "~%")
+              (case provider
+                (:gemini "Mock Gemini response - set *llm-api-key* for real calls")
+                (:openai "Mock OpenAI response - set *llm-api-key* for real calls") 
+                (:claude "Mock Claude response - set *llm-api-key* for real calls")
+                (:ollama "Mock Ollama response - set *llm-api-key* for real calls")
+                (otherwise "Mock response - set *llm-api-key* for real calls"))))
       (error (e)
         (cprin1 39 "LLM API Error: " e "~%")
-        nil)))))
+        (format nil "Error calling LLM: ~A" e)))))
 
 (defun llm-query (prompt &key provider model temperature max-tokens candidates context)
   "High-level interface for LLM queries with context and candidate filtering"
@@ -168,10 +205,11 @@
 
 (defun find-best-candidate (response candidates)
   "Find the best matching candidate from LLM response"
-  (let ((response-lower (string-downcase (string response))))
-    (find-if (lambda (candidate)
-               (search (string-downcase (string candidate)) response-lower))
-             candidates)))
+  (when (and response candidates)
+    (let ((response-lower (string-downcase (princ-to-string response))))
+      (find-if (lambda (candidate)
+                 (search (string-downcase (princ-to-string candidate)) response-lower))
+               candidates))))
 
 ;;; =============================================================================
 ;;; LLM-ENHANCED UTILITY FUNCTIONS
@@ -226,14 +264,16 @@
                                - Novelty
                                
                                Return format: SCORE: <number> REASON: <explanation>"
-                           unit (or (english unit) (abbrev unit))
+                           unit (or (and (fboundp 'english) (english unit)) 
+                                   (and (fboundp 'abbrev) (abbrev unit)))
                            applications context)
                    :temperature 0.3)))
     (when response
       (let ((score-pos (search "SCORE:" response)))
         (when score-pos
           (parse-integer (subseq response (+ score-pos 6) 
-                                (position #\Space response :start (+ score-pos 6)))
+                                (or (position #\Space response :start (+ score-pos 6))
+                                    (length response)))
                         :junk-allowed t))))))
 
 (defun llm-explain-failure (unit operation old-value new-value context)
@@ -297,7 +337,9 @@
                                        (subseq good-apps 0 (min 3 (length good-apps)))
                                        (subseq bad-apps 0 (min 3 (length bad-apps)))))
                         (target-slot (llm-choose-slot f 
-                                                     (intersection (slot-names f) (examples 'slot))
+                                                     (and (fboundp 'slot-names)
+                                                          (fboundp 'examples)
+                                                          (intersection (slot-names f) (examples 'slot)))
                                                      "specialize" context)))
                    (when target-slot
                      (setf *slot-to-change* target-slot)
@@ -462,8 +504,10 @@
   worth 800
   abbrev "LLM-guided example discovery"
   then-compute (lambda (f)
-                 (let* ((context (format nil "Unit: ~A. Description: ~A. Domain: ~A" 
-                                       f (or (english f) (abbrev f)) (domain f)))
+                 (let* (                        (context (format nil "Unit: ~A. Description: ~A. Domain: ~A" 
+                                       f (or (and (fboundp 'english) (english f)) 
+                                            (and (fboundp 'abbrev) (abbrev f))) 
+                                       (and (fboundp 'domain) (domain f))))
                         (suggestion (llm-query 
                                     (format nil "Suggest 3-5 good examples for this concept: ~A
                                                 Context: ~A
@@ -478,7 +522,7 @@
                                     :temperature 0.6)))
                    (when suggestion
                      ;; Parse examples from suggestion and add them
-                     (let ((examples (mapcar #'string-trim 
+                     (let ((examples (mapcar (lambda (s) (string-trim '(#\Space #\Tab #\Newline) s))
                                            (split-string suggestion #\,))))
                        (dolist (ex examples)
                          (when (and ex (not (string= ex "")))
