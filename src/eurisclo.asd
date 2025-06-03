@@ -10,4 +10,5 @@
   :serial t
   :components ((:file "eurisclo")
                (:file "units")
-               (:file "heuristics")))
+               (:file "heuristics")
+               (:file "llm")))

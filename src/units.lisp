@@ -48,6 +48,8 @@
                   generalizations generator good-choose good-subset h1 h10 h11 h12 h13 h14 h15
                   h16 h17 h18 h19 h19-criterial h2 h20 h21 h3 h4 h5 h5-criterial h5-good h6 h7 h8
                   h9 h-avoid h-avoid-2 h-avoid-2-and h-avoid-3 h-avoid-3-first h-avoid-if-working heuristic
+                  h30-llm-specialize h31-llm-slot-evolution h32-llm-worth-assessment
+                  h33-llm-failure-analysis h34-llm-heuristic-discovery h35-llm-smart-instantiation
                   hind-sight-rule ieqp igeq igreaterp ileq ilessp if-about-to-work-on-task
                   if-finished-working-on-task if-parts if-potentially-relevant if-task-parts
                   if-truly-relevant if-working-on-task in-domain-of indirect-applics inverse isa
@@ -2174,7 +2176,11 @@
                ;;        These are specializations of h1 that ran at some point, but weren't saved?
                ;; TODO - but why does the interlisp version work with these uncommented in live data?
                ;;        ensure that when this is re-enabled, it doesn't always try to fire it
-               h28 h20 #|h1-6|#)
+               h28 h20 #|h1-6|#
+               ;; LLM-enhanced heuristics
+               h30-llm-specialize h31-llm-slot-evolution h32-llm-worth-assessment
+               h33-llm-failure-analysis h34-llm-heuristic-discovery h35-llm-smart-instantiation
+               )
   isa (repr-concept anything category)
   generalizations (op anything repr-concept)
   specializations (hind-sight-rule))
