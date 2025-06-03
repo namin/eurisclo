@@ -469,17 +469,23 @@
   if-finished-working-on-task (lambda (task)
                                 (declare (ignore task))
                                 (and *llm-api-key*
-                                     (or (null *new-units*)
-                                         (every (lambda (u) (< (worth u) 200)) *new-units*))))
+                                     (let ((new-units (cdr (assoc 'new-units *task-results*))))
+                                       (or (null new-units)
+                                           (every (lambda (u) (< (worth u) 200)) new-units)))))
   then-compute (lambda (task)
                  (declare (ignore task))
                  (let* ((operation (if (is-a-kind-of *cur-slot* 'specializations) 
                                       "specialization" "generalization"))
-                        (context (format nil "Task: ~A ~A of ~A. Slot: ~A" 
+                        (old-val (if (boundp '*old-value*) *old-value* "not-set"))
+                        (new-val (if (boundp '*new-value*) *new-value* "not-set"))
+                        (context (format nil "Task: ~A ~A of ~A. Slot: ~A. Old: ~A New: ~A" 
                                        operation *cur-slot* *cur-unit* 
-                                       (cadr (assoc 'slot-to-change *cur-sup*))))
+                                       (cadr (assoc 'slot-to-change *cur-sup*))
+                                       old-val new-val))
                         (analysis (llm-explain-failure *cur-unit* operation 
-                                                      *old-value* *new-value* context)))
+                                                      old-val new-val context)))
+                   (cprin1 99 "H33 Debug: old-value bound? " (boundp '*old-value*) 
+                          " new-value bound? " (boundp '*new-value*) "~%")
                    (when analysis
                      (add-task-results 'failure-analysis 
                                       `((unit ,*cur-unit*)
@@ -602,4 +608,3 @@
 
 ;; Auto-initialize when loaded
 (initialize-llm-heuristics)
-
