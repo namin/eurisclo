@@ -11,4 +11,5 @@
   :components ((:file "eurisclo")
                (:file "units")
                (:file "heuristics")
-               (:file "llm")))
+               (:file "llm")
+               (:file "llm_heuristics")))
