@@ -400,13 +400,32 @@
         ((= (length trimmed) 0) nil)
         
         ;; For WORTH slot, ensure we get a number
-        ((and (symbolp slot-name) (string= (symbol-name slot-name) "WORTH"))
+        ((let ((slot-name-str (cond ((symbolp slot-name) (symbol-name slot-name))
+                                   ((stringp slot-name) (string-upcase slot-name))
+                                   (t (format nil "~A" slot-name)))))
+           (string= slot-name-str "WORTH"))
          (let ((parsed-number (parse-integer trimmed :junk-allowed t)))
            (if parsed-number
                parsed-number
                (progn
                  (cprin1 40 "Warning: Non-numeric WORTH value '" trimmed "', defaulting to 400~%")
                  400))))
+        
+        ;; Special handling for slots that EURISKO expects as lists
+        ((let ((slot-name-str (cond ((symbolp slot-name) (symbol-name slot-name))
+                                   ((stringp slot-name) (string-upcase slot-name))
+                                   (t (format nil "~A" slot-name)))))
+           (some (lambda (expected-slot) (string= slot-name-str expected-slot))
+                 '("DOMAIN" "ISA" "EXAMPLES" "SPECIALIZATIONS" "GENERALIZATIONS" 
+                   "APPLICS-OF" "APPLICS-TO" "APPLICS-WITH" "SUPERIORS" "SUBORDINATES")))
+         ;; Convert to a list containing the symbol
+         (let ((symbol-value (if (and (> (length trimmed) 0)
+                                     (alpha-char-p (char trimmed 0))
+                                     (every (lambda (c) (or (alphanumericp c) (char= c #\-))) trimmed)
+                                     (< (length trimmed) 30))
+                               (intern (string-upcase trimmed))
+                               trimmed)))
+           (list symbol-value)))
         
         ;; If it looks like a pure number, parse it
         ((every (lambda (c) (or (digit-char-p c) (char= c #\.) (char= c #\-))) trimmed)
@@ -434,6 +453,7 @@
         
         ;; Default: store as text for safety
         (t trimmed)))))
+
 
 (defun parse-float (string &key (junk-allowed nil))
   "Simple float parser"
