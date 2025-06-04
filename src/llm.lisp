@@ -376,15 +376,60 @@
   "Add a slot to a unit based on LLM suggestion"
   (when (and unit slot-def)
     (let ((slot-name (cdr (assoc 'slot slot-def)))
-          (slot-value (cdr (assoc 'value slot-def)))
+          (slot-value-text (cdr (assoc 'value slot-def)))
           (reason (cdr (assoc 'reason slot-def))))
-      (when (and slot-name slot-value)
+      (when (and slot-name slot-value-text)
         (cprin1 40 "Adding LLM-suggested slot " slot-name " to " unit "~%")
-        (put unit slot-name slot-value)
-        (when reason
-          (put unit (intern (format nil "~A-REASON" slot-name)) reason))
-        (push (list unit slot-name slot-value) *llm-generated-slots*)
-        t))))
+        
+        ;; Convert text to appropriate EURISKO value
+        (let ((slot-value (convert-text-to-slot-value slot-value-text slot-name)))
+          (when slot-value
+            (put unit slot-name slot-value)
+            (when reason
+              (put unit (intern (format nil "~A-REASON" slot-name)) reason))
+            (push (list unit slot-name slot-value) *llm-generated-slots*)
+            (cprin1 40 "Successfully added slot " slot-name " with value " slot-value "~%")
+            t))))))
+
+(defun convert-text-to-slot-value (text slot-name)
+  "Convert LLM text to appropriate EURISKO slot value"
+  (when (stringp text)
+    (let ((trimmed (string-trim '(#\Space #\Tab #\Newline) text)))
+      (cond
+        ;; If it looks like a number, try to parse it
+        ((every (lambda (c) (or (digit-char-p c) (char= c #\.))) trimmed)
+         (or (parse-integer trimmed :junk-allowed t)
+             (parse-float trimmed :junk-allowed t)
+             trimmed))
+        
+        ;; If it's trying to be a list or function, be very careful
+        ((and (> (length trimmed) 0)
+              (or (char= (char trimmed 0) #\()
+                  (search "lambda" trimmed)
+                  (search "IF " trimmed)
+                  (search "THEN " trimmed)))
+         ;; For now, don't try to evaluate LLM-generated code
+         ;; Store as text with a warning
+         (cprin1 40 "Warning: LLM generated code-like text for " slot-name ", storing as description~%")
+         (format nil "LLM-Description: ~A" trimmed))
+        
+        ;; If it looks like a concept name, try to intern it
+        ((and (> (length trimmed) 0)
+              (alpha-char-p (char trimmed 0))
+              (every (lambda (c) (or (alphanumericp c) (char= c #\-))) trimmed))
+         (intern (string-upcase trimmed)))
+        
+        ;; Default: store as text
+        (t trimmed)))))
+
+(defun parse-float (string &key (junk-allowed nil))
+  "Simple float parser"
+  (handler-case
+      (let ((*read-eval* nil))
+        (read-from-string string nil nil))
+    (error () 
+      (if junk-allowed nil (error "Not a valid float")))))
+
 
 (defun create-avoidance-rule-from-llm (rule-def context)
   "Create an avoidance heuristic from LLM-generated rule"
@@ -465,32 +510,33 @@ The new concept should be mathematically meaningful and related to the successfu
   then-compute (lambda (task)
                  (declare (ignore task))
                  (cprin1 40 "H31: Requesting LLM slot modification for " *cur-unit* "~%")
-                 (let* ((unit-context (format nil "Unit: ~A, Description: ~A, Current slots: ~A"
+                 (let* ((unit-context (format nil "Unit: ~A, Description: ~A"
                                              *cur-unit*
-                                             (or (english *cur-unit*) (abbrev *cur-unit*) "No description")
-                                             (and (fboundp 'slot-names) 
-                                                  (intersection (slot-names *cur-unit*) 
-                                                               (examples 'slot)))))
+                                             (or (english *cur-unit*) (abbrev *cur-unit*) "No description")))
                         (operation (if (is-a-kind-of *cur-slot* 'specializations) 
                                       "specialize" "generalize"))
-                        (prompt (format nil "Suggest a specific slot modification to ~A this mathematical concept:
+                        (prompt (format nil "Suggest a simple slot modification to ~A this mathematical concept:
 
 ~A
 
 Provide suggestion in this format:
-SLOT: [slot name to modify]
-VALUE: [new value for the slot]  
-REASON: [why this modification improves the concept]
+SLOT: [simple slot name like WORTH, DOMAIN, or EXAMPLES]
+VALUE: [simple value - a number, symbol, or short text - NOT code or complex expressions]
+REASON: [brief mathematical justification]
 
-Focus on mathematically meaningful changes that preserve correctness while making the concept more ~A."
-                                       operation unit-context 
-                                       (if (string= operation "specialize") "specific" "general")))
-                        (response (llm-query prompt :temperature 0.7)))
+Examples of good values:
+- Numbers: 750, 0.5
+- Symbols: MATH-OP, PRIME-NUM  
+- Short text: \"operations on integers\"
+
+Do NOT suggest complex code, functions, or long descriptions as values."
+                                       operation unit-context))
+                        (response (llm-query prompt :temperature 0.5)))
                    (when response
                      (let ((slot-suggestion (parse-llm-slot-suggestion response)))
                        (if (and slot-suggestion (add-slot-from-llm *cur-unit* slot-suggestion))
                            (progn
-                             (cprin1 15 "LLM suggested slot modification for " *cur-unit* "~%")
+                             (cprin1 15 "LLM suggested simple slot modification for " *cur-unit* "~%")
                              (add-task-results 'llm-slot-modification slot-suggestion)
                              t)
                            (progn
