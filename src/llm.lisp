@@ -50,7 +50,7 @@
 (defvar *llm-api-key* nil
   "API key for the current LLM provider")
 
-(defvar *llm-model* "gemini-2.5-flash-preview-05-20"
+(defvar *llm-model* "gemini-1.5-pro"
   "Model name for the current provider")
 
 (defvar *llm-temperature* 0.7
@@ -92,7 +92,7 @@
 
 (defun get-provider-config (provider)
   "Get configuration for the specified LLM provider"
-  (getf *llm-providers* provider))
+  (cdr (assoc provider *llm-providers*)))
 
 (defun format-llm-request (prompt &key provider model temperature max-tokens)
   "Format request for the specified LLM provider"
@@ -126,7 +126,14 @@
     ((listp response)
      (case provider
        (:gemini
-        (nested-getf response '("candidates" 0 "content" "parts" 0 "text")))
+        ;; Navigate: CANDIDATES -> first item -> CONTENT -> PARTS -> first item -> TEXT
+        (let* ((candidates (cdr (assoc :candidates response)))
+               (first-candidate (first candidates))
+               (content (cdr (assoc :content first-candidate)))
+               (parts (cdr (assoc :parts content)))
+               (first-part (first parts))
+               (text (cdr (assoc :text first-part))))
+          text))
        (:openai
         (nested-getf response '("choices" 0 "message" "content")))
        (:claude
@@ -152,57 +159,53 @@
             keys
             :initial-value plist)))
 
-(defun call-llm-api (prompt &key provider model temperature max-tokens)
-  "Make HTTP request to LLM API"
+(defun eurisko-llm-api-call (prompt &key provider model temperature max-tokens)
+  "Make HTTP request to LLM API - renamed to avoid conflicts"
   (let* ((provider (or provider *llm-provider*))
+         (model (or model *llm-model*))
          (config (get-provider-config provider))
          (base-url (getf config :base-url))
-         (headers (getf config :headers))
-         (auth-header (getf config :auth-header))
-         (auth-prefix (getf config :auth-prefix ""))
-         (request-data (format-llm-request prompt 
-                                          :provider provider 
-                                          :model model 
-                                          :temperature temperature 
-                                          :max-tokens max-tokens)))
-    
-    ;; Add authentication header
-    (when (and *llm-api-key* auth-header)
-      (push (cons auth-header (concatenate 'string auth-prefix *llm-api-key*)) headers))
-    
-    ;; Build full URL for Gemini
-    (when (eq provider :gemini)
-      (setf base-url (concatenate 'string base-url (or model *llm-model*) ":generateContent?key=" *llm-api-key*)))
+         (api-key *llm-api-key*))
     
     (handler-case
-        (if *llm-api-key*
-            ;; Make real API call
-            (progn
-              (cprin1 99 "Making real LLM API call to " provider "~%")
-              (multiple-value-bind (response status-code)
-                  (drakma:http-request base-url
-                                     :method :post
-                                     :content-type "application/json"
-                                     :additional-headers headers
-                                     :content (cl-json:encode-json request-data)
-                                     :want-stream nil)
-                (if (= status-code 200)
-                    (cl-json:decode-json-from-string response)
-                    (progn
-                      (cprin1 39 "API Error - Status: " status-code " Response: " response "~%")
-                      nil))))
-            ;; Fall back to mock response if no API key
-            (progn
-              (cprin1 99 "No API key - using mock response for " provider "~%")
-              (case provider
-                (:gemini "Mock Gemini response - set *llm-api-key* for real calls")
-                (:openai "Mock OpenAI response - set *llm-api-key* for real calls") 
-                (:claude "Mock Claude response - set *llm-api-key* for real calls")
-                (:ollama "Mock Ollama response - set *llm-api-key* for real calls")
-                (otherwise "Mock response - set *llm-api-key* for real calls"))))
+        (if (and api-key (stringp api-key) (not (string= api-key "")))
+            (case provider
+              (:gemini
+               (let* ((json-string (format nil "{\"contents\":[{\"parts\":[{\"text\":\"~A\"}]}],\"generationConfig\":{\"temperature\":~A,\"maxOutputTokens\":~A}}" 
+                                          prompt 
+                                          (or temperature *llm-temperature*)
+                                          (or max-tokens *llm-max-tokens*)))
+                      (full-url (format nil "~A~A:generateContent?key=~A" base-url model api-key)))
+                 (multiple-value-bind (response status-code)
+                     (drakma:http-request full-url
+                                        :method :post
+                                        :content-type "application/json"
+                                        :content json-string
+                                        :want-stream nil)
+                   (if (= status-code 200)
+                       (let ((response-string (if (stringp response)
+                                                  response
+                                                  (map 'string #'code-char response))))
+                         (cl-json:decode-json-from-string response-string))
+                       (format nil "API Error: Status ~A" status-code)))))
+              (:openai
+               (format nil "OpenAI not implemented yet"))
+              (otherwise
+               (format nil "Provider ~A not implemented" provider)))
+            
+            (format nil "Mock ~A response - no API key" provider))
       (error (e)
-        (cprin1 39 "LLM API Error: " e "~%")
         (format nil "Error calling LLM: ~A" e)))))
+
+(defun find-best-candidate (response candidates)
+  "Find the best matching candidate from LLM response"
+  (when (and response candidates)
+    (let ((response-lower (string-downcase (princ-to-string response)))
+          (result nil))
+      (setf result (find-if (lambda (candidate)
+                              (search (string-downcase (princ-to-string candidate)) response-lower))
+                            candidates))
+      result)))
 
 (defun llm-query (prompt &key provider model temperature max-tokens candidates context)
   "High-level interface for LLM queries with context and candidate filtering"
@@ -213,25 +216,25 @@
                                     (format nil "Please choose from these options: ~A" candidates)
                                     ""))
                          prompt))
-         (response (call-llm-api full-prompt 
-                                :provider provider 
-                                :model model 
-                                :temperature temperature 
-                                :max-tokens max-tokens)))
+         (response (eurisko-llm-api-call full-prompt 
+                                        :provider provider 
+                                        :model model 
+                                        :temperature temperature 
+                                        :max-tokens max-tokens)))
     
     (when response
       (let ((text (extract-llm-response response (or provider *llm-provider*))))
+        ;; Ensure we always return a string, never nil or other types
+        (unless (stringp text)
+          (setf text (format nil "~A" text)))
+        
+        ;; Handle error responses
+        (when (and (stringp text) (search "Error" text))
+          (setf text "LLM unavailable"))
+        
         (if candidates
             (find-best-candidate text candidates)
             text)))))
-
-(defun find-best-candidate (response candidates)
-  "Find the best matching candidate from LLM response"
-  (when (and response candidates)
-    (let ((response-lower (string-downcase (princ-to-string response))))
-      (find-if (lambda (candidate)
-                 (search (string-downcase (princ-to-string candidate)) response-lower))
-               candidates))))
 
 ;;; =============================================================================
 ;;; LLM-ENHANCED UTILITY FUNCTIONS
@@ -246,7 +249,8 @@
                 
                 Consider the unit's purpose, current applications, and the goal of the operation.
                 Return only the slot name."
-           unit (or (english unit) (abbrev unit) "No description") 
+           unit (or (and (fboundp 'english) (english unit)) 
+                   (and (fboundp 'abbrev) (abbrev unit)) "No description") 
            operation available-slots context)
    :candidates available-slots
    :temperature 0.3))
@@ -263,7 +267,8 @@
                 Goal: Make it ~A while preserving functionality and improving effectiveness.
                 Return only the new value, maintaining the same format/structure."
            operation slot old-value unit 
-           (or (english unit) (abbrev unit))
+           (or (and (fboundp 'english) (english unit)) 
+              (and (fboundp 'abbrev) (abbrev unit)))
            context
            (case operation
              (specialize "more specific and constrained")
@@ -476,16 +481,14 @@
                  (declare (ignore task))
                  (let* ((operation (if (is-a-kind-of *cur-slot* 'specializations) 
                                       "specialization" "generalization"))
+                        (slot-to-change (cadr (assoc 'slot-to-change *cur-sup*)))
                         (old-val (if (boundp '*old-value*) *old-value* "not-set"))
                         (new-val (if (boundp '*new-value*) *new-value* "not-set"))
                         (context (format nil "Task: ~A ~A of ~A. Slot: ~A. Old: ~A New: ~A" 
-                                       operation *cur-slot* *cur-unit* 
-                                       (cadr (assoc 'slot-to-change *cur-sup*))
+                                       operation *cur-slot* *cur-unit* slot-to-change
                                        old-val new-val))
                         (analysis (llm-explain-failure *cur-unit* operation 
                                                       old-val new-val context)))
-                   (cprin1 99 "H33 Debug: old-value bound? " (boundp '*old-value*) 
-                          " new-value bound? " (boundp '*new-value*) "~%")
                    (when analysis
                      (add-task-results 'failure-analysis 
                                       `((unit ,*cur-unit*)
@@ -530,11 +533,12 @@
                             (and *llm-api-key*
                                  (or (memb 'category (isa f))
                                      (memb 'op (isa f)))
-                                 (< (length (examples f)) 3)))
+                                 (and (fboundp 'examples)
+                                      (< (length (examples f)) 3))))
   worth 800
   abbrev "LLM-guided example discovery"
   then-compute (lambda (f)
-                 (let* (                        (context (format nil "Unit: ~A. Description: ~A. Domain: ~A" 
+                 (let* ((context (format nil "Unit: ~A. Description: ~A. Domain: ~A" 
                                        f (or (and (fboundp 'english) (english f)) 
                                             (and (fboundp 'abbrev) (abbrev f))) 
                                        (and (fboundp 'domain) (domain f))))
@@ -581,7 +585,9 @@
   (format t "~%LLM Status:~%")
   (format t "Provider: ~A~%" *llm-provider*)
   (format t "Model: ~A~%" *llm-model*)
-  (format t "API Key: ~A~%" (if *llm-api-key* "Configured" "Not set"))
+  (format t "API Key: ~A~%" (if (and *llm-api-key* (not (string= *llm-api-key* ""))) 
+                                "Set" 
+                                "Not set"))
   (format t "Temperature: ~A~%" *llm-temperature*)
   (format t "Max Tokens: ~A~%" *llm-max-tokens*))
 
@@ -596,6 +602,26 @@
                  (return (nreverse result))))))
 
 ;;; =============================================================================
+;;; HEURISTIC REGISTRATION
+;;; =============================================================================
+
+(defun register-llm-heuristics ()
+  "Register LLM heuristics with the EURISKO system"
+  (let ((llm-heuristics '(h30-llm-specialize 
+                         h31-llm-slot-evolution
+                         h32-llm-worth-assessment
+                         h33-llm-failure-analysis
+                         h34-llm-heuristic-discovery
+                         h35-llm-smart-instantiation)))
+    
+    ;; Add to examples of 'heuristic if that's how EURISKO tracks them
+    (when (fboundp 'union-prop)
+      (dolist (h llm-heuristics)
+        (union-prop 'heuristic 'examples h)))
+    
+    (format t "Registered ~A LLM heuristics~%" (length llm-heuristics))))
+
+;;; =============================================================================
 ;;; INITIALIZATION
 ;;; =============================================================================
 
@@ -604,6 +630,7 @@
   (cprin1 13 "~%Initializing LLM-enhanced EURISKO heuristics...~%")
   (cprin1 13 "Added heuristics: H30-H35 (LLM-guided)~%")
   (cprin1 13 "Use (configure-llm :gemini :api-key \"your-key\") to enable LLM features~%")
+  (register-llm-heuristics)
   (llm-status))
 
 ;; Auto-initialize when loaded
