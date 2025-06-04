@@ -27,7 +27,7 @@ See some [sample output for this branch](output_llm.md).
 ;; wait ad infinitum...
 (stop)
 (print-run-info)
-(show-llm-insights)
+(show-llm-stats)
 ```
 
 ## How to inspect running process (examples)

@@ -1,117 +1,68 @@
 (in-package "EURISCLO")
 
-(defheuristic h-llm-analogize
-  isa (heuristic op anything)
-  english "IF a concept has interesting properties, THEN ask LLM for analogous concepts from mathematics/CS that might share similar structure"
-  if-potentially-relevant (lambda (f)
-                          (and (has-high-worth f)
-                               (or (memb 'math-concept (isa f))
-                                   (memb 'op (isa f)))))
-  worth 650
-  abbrev "Find analogies to interesting concepts via LLM"
-  then-compute (lambda (f)
-                (let* ((prompt (format nil "The concept ~A has these properties: ~A. What are some analogous mathematical or computational concepts that share similar structural properties? List 2-3 concepts with brief explanations."
-                                     f
-                                     (describe-concept-properties f)))
-                       (response (llm-query prompt))
-                       (analogies (parse-llm-analogies response)))
-                  (setf *suggested-concepts* analogies)))
-  then-define-new-concepts (lambda (f)
-                            (dolist (analog *suggested-concepts*)
-                              (when (not (unitp (analog-name analog)))
-                                (let ((new-unit (create-unit (analog-name analog))))
-                                  ;; Copy structural properties from original
-                                  (put new-unit 'isa (copy (isa f)))
-                                  (put new-unit 'worth (floor (* 0.8 (worth f))))
-                                  (put new-unit 'english (analog-description analog))
-                                  (put new-unit 'creditors '(h-llm-analogize))
-                                  (addprop f 'analogies new-unit)))))
-  then-add-to-agenda (lambda (f)
-                      (add-to-agenda 
-                        (mapcar (lambda (new-concept)
-                                  `(,(average-worths new-concept 'h-llm-analogize)
-                                    ,new-concept
-                                    examples
-                                    (("Exploring LLM-suggested analog of" ,f))
-                                    ((credit-to h-llm-analogize))))
-                                *suggested-concepts*))))
+;;; LLM-Enhanced Heuristics for Eurisko
+;;; These heuristics use Large Language Models to suggest new mathematical concepts,
+;;; patterns, and conjectures that Eurisko can then explore systematically.
 
-(defheuristic h-llm-pattern-find
-  isa (heuristic op anything)
-  english "IF a concept has many interesting examples, THEN ask LLM to identify patterns that might suggest new predicates or operations"
-  if-potentially-relevant (lambda (f)
-                          (and (>= (length (int-examples f)) 5)
-                               (memb 'category (isa f))))
-  worth 700
-  abbrev "LLM identifies patterns in interesting examples"
-  then-compute (lambda (f)
-                (let* ((examples-str (format nil "~{~A~^, ~}" 
-                                           (mapcar #'prin1-to-string 
-                                                  (take 10 (int-examples f)))))
-                       (prompt (format nil "Analyze these examples: ~A. What mathematical patterns or properties do they share? Suggest 2-3 predicates that might characterize them."
-                                     examples-str))
-                       (response (llm-query prompt)))
-                  (setf *pattern-predicates* (parse-llm-predicates response))))
-  then-define-new-concepts (lambda (f)
-                            (dolist (pred-spec *pattern-predicates*)
-                              (let ((new-pred (create-unit (gensym "llm-pred-"))))
-                                (put new-pred 'isa '(pred unary-pred math-pred anything))
-                                (put new-pred 'worth 500)
-                                (put new-pred 'arity 1)
-                                (put new-pred 'domain (list f))
-                                (put new-pred 'range '(bit))
-                                (put new-pred 'english (pred-spec-description pred-spec))
-                                ;; Generate a test function based on the pattern
-                                (put new-pred 'fast-defn 
-                                     (compile-pattern-test pred-spec))
-                                (put new-pred 'creditors '(h-llm-pattern-find))
-                                (addprop f 'pattern-predicates new-pred)))))
+;;; Global variables for heuristic communication
+(defvar *suggested-concepts* nil)
+(defvar *pattern-predicates* nil)
+(defvar *llm-conjectures* nil)
+(defvar *llm-specializations* nil)
 
-(defheuristic h-llm-conjecture
-  isa (heuristic op anything)
-  english "IF interesting relationships exist between concepts, THEN ask LLM to suggest mathematical conjectures about them"
-  if-potentially-relevant (lambda (f)
-                          (and (conjectures f)
-                               (> (worth f) 700)))
-  worth 600
-  abbrev "LLM suggests mathematical conjectures"
-  then-compute (lambda (f)
-                (let* ((related-concepts (find-related-high-worth-concepts f))
-                       (prompt (format nil "Given these mathematical concepts and their relationships: ~A. Suggest 2-3 plausible mathematical conjectures that might hold."
-                                     (describe-concept-network f related-concepts)))
-                       (response (llm-query prompt)))
-                  (setf *llm-conjectures* (parse-llm-conjectures response))))
-  then-conjecture (lambda (f)
-                   (dolist (conj-spec *llm-conjectures*)
-                     (let ((conjec (new-name 'conjec)))
-                       (create-unit conjec 'proto-conjec)
-                       (put conjec 'english (conj-spec-text conj-spec))
-                       (put conjec 'worth (floor (* 0.7 (worth f))))
-                       (put conjec 'conjecture-about (conj-spec-concepts conj-spec))
-                       (push conjec *conjectures*)))))
+;;; Global statistics for debugging LLM heuristics
+(defparameter *llm-heuristic-stats* 
+  '(:total-calls 0 
+    :successful-parses 0 
+    :failed-parses 0
+    :concepts-created 0
+    :parse-failures nil))
 
-(defheuristic h-llm-specialize-guided
-  isa (heuristic op anything)
-  english "IF specializing a concept, THEN ask LLM for mathematically interesting ways to constrain it"
-  if-potentially-relevant null
-  worth 750
-  if-working-on-task (lambda (task)
-                      (and (is-a-kind-of *cur-slot* 'specializations)
-                           (null (assoc 'slot-to-change *cur-sup*))))
-  then-compute (lambda (task)
-                (let* ((prompt (format nil "The concept ~A with properties ~A needs specialization. Suggest 2-3 mathematically interesting ways to add constraints or restrictions."
-                                     *cur-unit*
-                                     (get-key-properties *cur-unit*)))
-                       (response (llm-query prompt))
-                       (suggestions (parse-specialization-suggestions response)))
-                  (setf *llm-specializations* suggestions)))
-  then-modify-slots (lambda (task)
-                     (dolist (spec *llm-specializations*)
-                       (let ((slot-name (spec-slot spec))
-                             (modification (spec-modification spec)))
-                         (when (and (slot-exists-p slot-name)
-                                   (can-modify-p slot-name modification))
-                           (apply-specialization *cur-unit* slot-name modification))))))
+;;; Utility functions
+
+(defun llm-query-formatted (prompt format-instructions)
+  "Query LLM with explicit format instructions"
+  (let ((full-prompt (format nil "~A
+
+IMPORTANT: You must respond ONLY in the following format. Do not include any explanations or additional text outside this format:
+
+~A
+
+Begin your response immediately with the formatted output:" 
+                            prompt format-instructions)))
+    (incf (getf *llm-heuristic-stats* :total-calls))
+    (llm-query full-prompt)))
+
+(defun log-parse-failure (heuristic-name input reason)
+  "Log parsing failures for debugging"
+  (push (list :heuristic heuristic-name 
+              :timestamp (get-universal-time)
+              :reason reason
+              :input-snippet (subseq input 0 (min 200 (length input))))
+        (getf *llm-heuristic-stats* :parse-failures))
+  (cprin1 20 "Parse failure in " heuristic-name ": " reason "~%"))
+
+(defun split-string (string delimiter)
+  "Split string by delimiter character"
+  (let ((parts nil)
+        (start 0))
+    (loop for i from 0 below (length string)
+          when (char= (char string i) delimiter)
+          do (push (subseq string start i) parts)
+             (setf start (1+ i)))
+    (push (subseq string start) parts)
+    (reverse parts)))
+
+(defun starts-with-p (string prefix)
+  "Check if string starts with prefix"
+  (and (>= (length string) (length prefix))
+       (string= string prefix :end1 (length prefix))))
+
+(defun take (n list)
+  "Take first n elements of list"
+  (loop for item in list
+        for i from 0 below n
+        collect item))
 
 (defun describe-concept-properties (unit)
   "Generate a concise description of a unit's key properties"
@@ -121,34 +72,84 @@
           (arity unit)
           (car (isa unit))))
 
+(defun get-key-properties (unit)
+  "Extract key properties for LLM context"
+  (format nil "~{~A~^, ~}"
+          (remove nil
+                  (list (when (domain unit) 
+                          (format nil "domain: ~A" (domain unit)))
+                        (when (worth unit)
+                          (format nil "worth: ~A" (worth unit)))
+                        (when (arity unit)
+                          (format nil "arity: ~A" (arity unit)))))))
+
+(defun find-related-high-worth-concepts (unit)
+  "Find concepts related to unit with high worth"
+  (remove-duplicates
+   (append (generalizations unit)
+           (specializations unit)
+           (remove-if-not (lambda (u) (> (worth u) 600))
+                         (examples (car (isa unit)))))))
+
+(defun clean-concept-name (name)
+  "Convert a natural language concept name into a valid Eurisko unit name"
+  (let* ((cleaned (remove-if (lambda (c) 
+                              (member c '(#\* #\` #\( #\) #\[ #\])))
+                            name))
+         (words (split-string cleaned #\Space))
+         (final-name (format nil "~{~A~^-~}" 
+                            (mapcar #'string-upcase 
+                                   (remove-if (lambda (w) (< (length w) 2))
+                                             words)))))
+    (when (and (> (length final-name) 2)
+               (not (every #'digit-char-p final-name)))
+      (intern final-name))))
+
+;;; Parsing functions for analogies
+
 (defun parse-llm-analogies (response)
-  "Parse LLM response for analog concepts. Expects format: CONCEPT-NAME: description"
+  "Parse LLM response for analog concepts"
   (let ((analogies nil))
+    ;; First try structured format
     (dolist (line (split-string response #\Newline))
       (when (and (> (length line) 3)
                  (find #\: line))
         (let* ((colon-pos (position #\: line))
                (name-part (string-trim " " (subseq line 0 colon-pos)))
-               (desc-part (string-trim " " (subseq line (1+ colon-pos))))
-               (cleaned-name (clean-concept-name name-part)))
-          (when (and cleaned-name (> (length desc-part) 10))
-            (push (list :name cleaned-name 
-                        :description desc-part
-                        :original-name name-part)
-                  analogies)))))
+               (desc-part (string-trim " " (subseq line (1+ colon-pos)))))
+          ;; Skip numbered items like "1. Function Composition:"
+          (when (and (not (find #\. name-part))
+                     (not (digit-char-p (char name-part 0))))
+            (let ((cleaned-name (clean-concept-name name-part)))
+              (when (and cleaned-name 
+                         (> (length desc-part) 10)
+                         (not (search "**" name-part))) ; Skip markdown
+                (push (list :name cleaned-name 
+                           :description desc-part
+                           :original-name name-part)
+                      analogies)))))))
+    
+    ;; If structured parsing failed, try to extract from numbered list
+    (when (null analogies)
+      (let ((lines (split-string response #\Newline)))
+        (dolist (line lines)
+          ;; Look for patterns like "1. **Name**:" or "1. Name:"
+          (when (and (> (length line) 5)
+                     (digit-char-p (char line 0))
+                     (char= (char line 1) #\.))
+            (let* ((content (string-trim " " (subseq line 2)))
+                   (name-end (or (position #\: content)
+                                (position #\- content)))
+                   (name-part (when name-end
+                               (string-trim " *" (subseq content 0 name-end)))))
+              (when (and name-part (> (length name-part) 2))
+                (push (list :name (clean-concept-name name-part)
+                           :description (if name-end
+                                          (string-trim " " (subseq content (1+ name-end)))
+                                          "LLM-suggested concept")
+                           :original-name name-part)
+                      analogies)))))))
     (reverse analogies)))
-
-(defun clean-concept-name (name)
-  "Convert a natural language concept name into a valid Eurisko unit name"
-  ;; Remove special characters, convert to uppercase, replace spaces with hyphens
-  (let ((cleaned (string-upcase 
-                  (substitute #\- #\Space 
-                              (remove-if-not (lambda (c) 
-                                              (or (alphanumericp c) 
-                                                  (char= c #\Space)))
-                                            name)))))
-    (when (> (length cleaned) 0)
-      (intern cleaned))))
 
 (defun analog-name (analog-spec)
   (getf analog-spec :name))
@@ -156,22 +157,7 @@
 (defun analog-description (analog-spec)
   (getf analog-spec :description))
 
-(defun h-llm-pattern-find-prompt (examples)
-  "Generate a structured prompt for pattern finding"
-  (format nil "Analyze these mathematical examples: ~A
-
-Please identify patterns in the format:
-PATTERN: [name of pattern]
-TEST: [simple description of how to test if something has this pattern]
-PROPERTY: [mathematical property being tested]
-
-Example format:
-PATTERN: palindromic-number
-TEST: number reads the same forwards and backwards
-PROPERTY: symmetric digit sequence
-
-Provide 2-3 patterns:" 
-          (format nil "~{~A~^, ~}" examples)))
+;;; Parsing functions for patterns
 
 (defun parse-llm-predicates (response)
   "Parse pattern specifications from LLM response"
@@ -223,16 +209,17 @@ Provide 2-3 patterns:"
          (and (numberp x)
               (= x (expt (isqrt x) 2)))))
       ;; Default: create a placeholder that always returns nil
-      ;; but records what it was asked to test
       (t 
        (lambda (x)
-         (cprin1 50 "LLM pattern test for ~A on ~A~%" property x)
+         (cprin1 50 "LLM pattern test for " property " on " x "~%")
          nil)))))
 
 (defun pred-spec-description (pred-spec)
   (format nil "Tests for ~A: ~A" 
           (getf pred-spec :property)
           (getf pred-spec :test)))
+
+;;; Parsing functions for conjectures
 
 (defun describe-concept-network (unit related-units)
   "Describe a concept and its relationships for conjecture generation"
@@ -242,22 +229,6 @@ Provide 2-3 patterns:"
           (get-key-properties unit)
           (mapcar (lambda (u) (format nil "~A(~A)" u (car (isa u))))
                   related-units)))
-
-(defun llm-conjecture-prompt (concept-description)
-  (format nil "~A
-
-Suggest mathematical conjectures in this format:
-CONJECTURE: [name]
-STATEMENT: [precise mathematical statement]
-INVOLVES: [comma-separated list of concepts involved]
-
-Example:
-CONJECTURE: distributivity-over-union
-STATEMENT: For any operation f and sets A,B: f(A∪B) = f(A)∪f(B) when f preserves structure
-INVOLVES: operation, set-union, structure-preservation
-
-Provide 2-3 conjectures:"
-          concept-description))
 
 (defun parse-llm-conjectures (response)
   "Parse structured conjectures from LLM response"
@@ -296,33 +267,7 @@ Provide 2-3 conjectures:"
 (defun conj-spec-concepts (conj-spec)
   (getf conj-spec :concepts))
 
-(defun get-key-properties (unit)
-  "Extract key properties for LLM context"
-  (format nil "~{~A~^, ~}"
-          (remove nil
-                  (list (when (domain unit) 
-                          (format nil "domain: ~A" (domain unit)))
-                        (when (worth unit)
-                          (format nil "worth: ~A" (worth unit)))
-                        (when (arity unit)
-                          (format nil "arity: ~A" (arity unit)))))))
-
-(defun llm-specialization-prompt (unit properties)
-  (format nil "Concept ~A has ~A.
-
-Suggest specializations in this format:
-SPECIALIZE: [slot-name]
-CONSTRAINT: [how to constrain it]
-RATIONALE: [why this makes mathematical sense]
-
-Valid slots: domain, range, fast-defn, examples
-Example:
-SPECIALIZE: domain
-CONSTRAINT: restrict first argument to prime-numbers only  
-RATIONALE: prime numbers have unique factorization properties
-
-Provide 2-3 specializations:"
-          unit properties))
+;;; Parsing functions for specializations
 
 (defun parse-specialization-suggestions (response)
   "Parse specialization suggestions"
@@ -356,30 +301,226 @@ Provide 2-3 specializations:"
 (defun spec-modification (spec)
   (getf spec :constraint))
 
-(defun split-string (string delimiter)
-  "Split string by delimiter character"
-  (let ((parts nil)
-        (start 0))
-    (loop for i from 0 below (length string)
-          when (char= (char string i) delimiter)
-          do (push (subseq string start i) parts)
-             (setf start (1+ i)))
-    (push (subseq string start) parts)
-    (reverse parts)))
+;;; Statistics functions
 
-(defun starts-with-p (string prefix)
-  "Check if string starts with prefix"
-  (and (>= (length string) (length prefix))
-       (string= string prefix :end1 (length prefix))))
+(defun show-llm-stats ()
+  "Display LLM heuristic statistics"
+  (format t "~%=== LLM Heuristic Statistics ===~%")
+  (format t "Total LLM calls: ~A~%" (getf *llm-heuristic-stats* :total-calls))
+  (format t "Successful parses: ~A~%" (getf *llm-heuristic-stats* :successful-parses))
+  (format t "Failed parses: ~A~%" (getf *llm-heuristic-stats* :failed-parses))
+  (format t "Concepts created: ~A~%" (getf *llm-heuristic-stats* :concepts-created))
+  (when (> (getf *llm-heuristic-stats* :failed-parses) 0)
+    (format t "~%Recent parse failures:~%")
+    (dolist (failure (subseq (getf *llm-heuristic-stats* :parse-failures) 
+                            0 (min 5 (length (getf *llm-heuristic-stats* :parse-failures)))))
+      (format t "  ~A: ~A~%" 
+              (getf failure :heuristic)
+              (getf failure :reason)))))
 
-(defun find-related-high-worth-concepts (unit)
-  "Find concepts related to unit with high worth"
-  (remove-duplicates
-   (append (generalizations unit)
-           (specializations unit)
-           (remove-if-not (lambda (u) (> (worth u) 600))
-                         (examples (car (isa unit)))))))
+(defun reset-llm-stats ()
+  "Reset statistics"
+  (setf *llm-heuristic-stats* 
+        '(:total-calls 0 
+          :successful-parses 0 
+          :failed-parses 0
+          :concepts-created 0
+          :parse-failures nil)))
 
+;;; LLM Heuristics
+
+(defheuristic h-llm-analogize
+  isa (heuristic op anything)
+  english "IF a concept has interesting properties, THEN ask LLM for analogous concepts from mathematics/CS that might share similar structure"
+  if-potentially-relevant (lambda (f)
+                          (and (has-high-worth f)
+                               (or (memb 'math-concept (isa f))
+                                   (memb 'op (isa f)))))
+  worth 650
+  abbrev "Find analogies to interesting concepts via LLM"
+  then-compute (lambda (f)
+                (let* ((prompt (format nil "Find 2-3 mathematical or computational concepts analogous to ~A which has properties: ~A"
+                                     f
+                                     (describe-concept-properties f)))
+                       (format-spec "CONCEPT-NAME: description in one line
+CONCEPT-NAME: description in one line
+CONCEPT-NAME: description in one line")
+                       (response (llm-query-formatted prompt format-spec))
+                       (analogies (parse-llm-analogies response)))
+                  (if analogies
+                      (incf (getf *llm-heuristic-stats* :successful-parses))
+                      (progn
+                        (incf (getf *llm-heuristic-stats* :failed-parses))
+                        (log-parse-failure 'h-llm-analogize response "No valid entries found")))
+                  (cprin1 30 "Parsed " (length analogies) " analogies from LLM response~%")
+                  (setf *suggested-concepts* analogies)))
+  then-define-new-concepts (lambda (f)
+                            (let ((created-count 0))
+                              (dolist (analog *suggested-concepts*)
+                                (when (and analog 
+                                          (not (unitp (analog-name analog))))
+                                  (let ((new-unit (create-unit (analog-name analog))))
+                                    (put new-unit 'isa (copy (isa f)))
+                                    (put new-unit 'worth (floor (* 0.8 (worth f))))
+                                    (put new-unit 'english (analog-description analog))
+                                    (put new-unit 'creditors '(h-llm-analogize))
+                                    (put new-unit 'llm-generated t)
+                                    (addprop f 'analogies new-unit)
+                                    (incf created-count)
+                                    (incf (getf *llm-heuristic-stats* :concepts-created))
+                                    (cprin1 25 "Created analog concept: " new-unit "~%"))))
+                              (when (> created-count 0)
+                                (cprin1 20 "H-LLM-ANALOGIZE created " created-count " new concepts~%")
+                                t)))
+  then-add-to-agenda (lambda (f)
+                      (when *suggested-concepts*
+                        (let ((tasks nil))
+                          (dolist (analog *suggested-concepts*)
+                            (let ((unit-name (analog-name analog)))
+                              (when (unitp unit-name)
+                                (push `(,(average-worths unit-name 'h-llm-analogize)
+                                        ,unit-name
+                                        examples
+                                        (("Exploring LLM-suggested analog of" ,f))
+                                        ((credit-to h-llm-analogize)))
+                                      tasks))))
+                          (when tasks
+                            (add-to-agenda tasks)
+                            (add-task-results 'new-tasks 
+                                             (list (length tasks) 
+                                                   "analog concepts to explore"))))))
+  arity 1)
+
+(defheuristic h-llm-pattern-find
+  isa (heuristic op anything)
+  english "IF a concept has many interesting examples, THEN ask LLM to identify patterns that might suggest new predicates"
+  if-potentially-relevant (lambda (f)
+                          (and (>= (length (int-examples f)) 5)
+                               (memb 'category (isa f))))
+  worth 700
+  abbrev "LLM identifies patterns in interesting examples"
+  then-compute (lambda (f)
+                (let* ((examples (take 10 (int-examples f)))
+                       (prompt (format nil "Find patterns in: ~{~A~^, ~}" examples))
+                       (format-spec "PATTERN: name-here
+TEST: how to test
+PROPERTY: what property
+
+PATTERN: name-here
+TEST: how to test  
+PROPERTY: what property")
+                       (response (llm-query-formatted prompt format-spec))
+                       (patterns (parse-llm-predicates response)))
+                  (if patterns
+                      (incf (getf *llm-heuristic-stats* :successful-parses))
+                      (progn
+                        (incf (getf *llm-heuristic-stats* :failed-parses))
+                        (log-parse-failure 'h-llm-pattern-find response "No valid patterns found")))
+                  (setf *pattern-predicates* patterns)))
+  then-define-new-concepts (lambda (f)
+                            (let ((created 0))
+                              (dolist (pred-spec *pattern-predicates*)
+                                (when pred-spec
+                                  (let ((new-pred (create-unit (gensym "LLM-PRED-"))))
+                                    (put new-pred 'isa '(pred unary-pred math-pred anything))
+                                    (put new-pred 'worth 500)
+                                    (put new-pred 'arity 1)
+                                    (put new-pred 'domain (list f))
+                                    (put new-pred 'range '(bit))
+                                    (put new-pred 'english (pred-spec-description pred-spec))
+                                    (put new-pred 'fast-defn (compile-pattern-test pred-spec))
+                                    (put new-pred 'creditors '(h-llm-pattern-find))
+                                    (put new-pred 'llm-generated t)
+                                    (addprop f 'pattern-predicates new-pred)
+                                    (incf created)
+                                    (incf (getf *llm-heuristic-stats* :concepts-created)))))
+                              (cprin1 20 "Created " created " pattern predicates~%")
+                              (> created 0)))
+  arity 1)
+
+(defheuristic h-llm-conjecture
+  isa (heuristic op anything)
+  english "IF interesting relationships exist between concepts, THEN ask LLM to suggest mathematical conjectures"
+  if-potentially-relevant (lambda (f)
+                          (and (conjectures f)
+                               (> (worth f) 700)))
+  worth 600
+  abbrev "LLM suggests mathematical conjectures"
+  then-compute (lambda (f)
+                (let* ((related-concepts (find-related-high-worth-concepts f))
+                       (prompt (format nil "Given: ~A" 
+                                     (describe-concept-network f related-concepts)))
+                       (format-spec "CONJECTURE: name-without-spaces
+STATEMENT: mathematical statement here
+INVOLVES: concept1, concept2, concept3
+
+CONJECTURE: another-name
+STATEMENT: another mathematical statement
+INVOLVES: concept1, concept2")
+                       (response (llm-query-formatted prompt format-spec))
+                       (conjectures (parse-llm-conjectures response)))
+                  (if conjectures
+                      (incf (getf *llm-heuristic-stats* :successful-parses))
+                      (progn
+                        (incf (getf *llm-heuristic-stats* :failed-parses))
+                        (log-parse-failure 'h-llm-conjecture response "No valid conjectures found")))
+                  (setf *llm-conjectures* conjectures)))
+  then-conjecture (lambda (f)
+                   (dolist (conj-spec *llm-conjectures*)
+                     (let ((conjec (new-name 'conjec)))
+                       (create-unit conjec 'proto-conjec)
+                       (put conjec 'english (conj-spec-text conj-spec))
+                       (put conjec 'worth (floor (* 0.7 (worth f))))
+                       (put conjec 'conjecture-about (conj-spec-concepts conj-spec))
+                       (put conjec 'llm-generated t)
+                       (push conjec *conjectures*)
+                       (incf (getf *llm-heuristic-stats* :concepts-created))))
+                   (length *llm-conjectures*))
+  arity 1)
+
+(defheuristic h-llm-specialize-guided
+  isa (heuristic op anything)
+  english "IF specializing a concept, THEN ask LLM for mathematically interesting ways to constrain it"
+  if-potentially-relevant null
+  worth 750
+  if-working-on-task (lambda (task)
+                      (and (is-a-kind-of *cur-slot* 'specializations)
+                           (null (assoc 'slot-to-change *cur-sup*))))
+  then-compute (lambda (task)
+                (let* ((prompt (format nil "Concept ~A has ~A. Suggest specializations."
+                                     *cur-unit*
+                                     (get-key-properties *cur-unit*)))
+                       (format-spec "SPECIALIZE: slot-name
+CONSTRAINT: how to constrain it
+RATIONALE: why this makes mathematical sense
+
+SPECIALIZE: another-slot
+CONSTRAINT: another constraint
+RATIONALE: another rationale")
+                       (response (llm-query-formatted prompt format-spec))
+                       (suggestions (parse-specialization-suggestions response)))
+                  (if suggestions
+                      (incf (getf *llm-heuristic-stats* :successful-parses))
+                      (progn
+                        (incf (getf *llm-heuristic-stats* :failed-parses))
+                        (log-parse-failure 'h-llm-specialize-guided response "No valid suggestions")))
+                  (setf *llm-specializations* suggestions)))
+  then-add-to-agenda (lambda (task)
+                      (when *llm-specializations*
+                        (add-to-agenda 
+                          (mapcar (lambda (spec)
+                                    `(,(average-worths *cur-unit* 'h-llm-specialize-guided)
+                                      ,*cur-unit*
+                                      specializations
+                                      (("LLM suggests specializing" ,(spec-slot spec) 
+                                        "because" ,(getf spec :rationale)))
+                                      ((slot-to-change ,(spec-slot spec))
+                                       (credit-to h-llm-specialize-guided))))
+                                  *llm-specializations*))
+                        (add-task-results 'new-tasks 
+                                         (list (length *llm-specializations*)
+                                               "LLM-guided specializations"))))
+  arity 1)
 
 ;;; =============================================================================
 ;;; INITIALIZATION
