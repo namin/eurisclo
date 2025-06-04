@@ -50,7 +50,7 @@
 (defvar *llm-api-key* nil
   "API key for the current LLM provider")
 
-(defvar *llm-model* "gemini-1.5-pro"
+(defvar *llm-model* "gemini-2.5-flash-preview-05-20"
   "Model name for the current provider")
 
 (defvar *llm-temperature* 0.7
