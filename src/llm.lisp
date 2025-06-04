@@ -504,8 +504,8 @@
         
         ;; If it looks like a pure number, parse it
         ((every (lambda (c) (or (digit-char-p c) (char= c #\.) (char= c #\-))) trimmed)
-         (or (parse-integer trimmed :junk-allowed t)
-             (parse-float trimmed :junk-allowed t)
+         (or (parse-float trimmed :junk-allowed t)
+             (parse-integer trimmed :junk-allowed t)
              trimmed))
         
         ;; If it's trying to be a list or function, be very careful
