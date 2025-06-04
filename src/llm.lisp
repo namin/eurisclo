@@ -396,8 +396,20 @@
   (when (stringp text)
     (let ((trimmed (string-trim '(#\Space #\Tab #\Newline) text)))
       (cond
-        ;; If it looks like a number, try to parse it
-        ((every (lambda (c) (or (digit-char-p c) (char= c #\.))) trimmed)
+        ;; Empty string
+        ((= (length trimmed) 0) nil)
+        
+        ;; For WORTH slot, ensure we get a number
+        ((and (symbolp slot-name) (string= (symbol-name slot-name) "WORTH"))
+         (let ((parsed-number (parse-integer trimmed :junk-allowed t)))
+           (if parsed-number
+               parsed-number
+               (progn
+                 (cprin1 40 "Warning: Non-numeric WORTH value '" trimmed "', defaulting to 400~%")
+                 400))))
+        
+        ;; If it looks like a pure number, parse it
+        ((every (lambda (c) (or (digit-char-p c) (char= c #\.) (char= c #\-))) trimmed)
          (or (parse-integer trimmed :junk-allowed t)
              (parse-float trimmed :junk-allowed t)
              trimmed))
@@ -413,13 +425,14 @@
          (cprin1 40 "Warning: LLM generated code-like text for " slot-name ", storing as description~%")
          (format nil "LLM-Description: ~A" trimmed))
         
-        ;; If it looks like a concept name, try to intern it
+        ;; If it looks like a simple concept name, try to intern it
         ((and (> (length trimmed) 0)
               (alpha-char-p (char trimmed 0))
-              (every (lambda (c) (or (alphanumericp c) (char= c #\-))) trimmed))
+              (every (lambda (c) (or (alphanumericp c) (char= c #\-))) trimmed)
+              (< (length trimmed) 30)) ; Reasonable concept name length
          (intern (string-upcase trimmed)))
         
-        ;; Default: store as text
+        ;; Default: store as text for safety
         (t trimmed)))))
 
 (defun parse-float (string &key (junk-allowed nil))
