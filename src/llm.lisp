@@ -38,7 +38,7 @@
 (defun fix-nil-worth-values ()
   "Fix any units that have NIL WORTH values"
   (let ((fixed-count 0))
-    (dolist (unit *all-units*)
+    (dolist (unit *units*)
       (when (and unit (null (worth unit)))
         (put unit 'worth 400)
         (incf fixed-count)
@@ -55,7 +55,7 @@
   (let ((nil-worth-units '())
         (invalid-worth-units '())
         (total-units 0))
-    (dolist (unit *all-units*)
+    (dolist (unit *units*)
       (when unit
         (incf total-units)
         (let ((worth-val (worth unit)))
@@ -87,7 +87,7 @@
 (defvar *new-units*)
 (defvar *creditors*)
 (defvar *conjectures*)
-(defvar *all-units*)
+(defvar *units*)
 (defvar *deleted-units*)
 (defvar *task-num*)
 (defvar *task*)
@@ -554,267 +554,474 @@
                 (context . ,context)) *llm-suggested-rules*)
         rule-name))))
 
+
 ;;; =============================================================================
-;;; REDESIGNED LLM-ENHANCED HEURISTICS (with WORTH safety)
+;;; MATHEMATICAL CONCEPT DISCOVERY WITH LLM
 ;;; =============================================================================
 
-(defheuristic h30-llm-concept-generator
+(defheuristic h30-llm-mathematical-explorer
   isa (heuristic op anything)
-  english "IF we've seen patterns in successful concepts, THEN use LLM to generate new related concepts"
+  english "IF we have interesting mathematical structures, THEN use LLM to suggest extensions and generalizations"
   if-potentially-relevant (lambda (f)
-                            (declare (ignore f))
                             (and *llm-api-key*
-                                 (> (length *conjectures*) 3)))
-  worth 850
-  abbrev "LLM-guided concept generation from patterns"
+                                 (or (memb 'math-concept (isa f))
+                                     (memb 'math-op (isa f))
+                                     (memb 'structure (generalizations f))
+                                     (memb 'set-op (isa f))
+                                     (memb 'num-op (isa f)))))
+  worth 800
+  abbrev "LLM-guided mathematical concept exploration"
   then-compute (lambda (f)
-                 (declare (ignore f))
-                 (cprin1 40 "H30: Analyzing successful patterns to generate new concepts~%")
-                 (let* ((recent-successes (subseq *conjectures* 0 (min 3 (length *conjectures*))))
-                        (pattern-context (format nil "Recent successful concepts: ~A" 
-                                               (mapcar (lambda (c) 
-                                                        (list (english c) (isa c) (domain c))) 
-                                                      recent-successes)))
-                        (prompt (format nil "Based on these successful mathematical concepts, suggest a new related concept:
+                 (cprin1 40 "H30: Exploring mathematical extensions of " f "~%")
+                 
+                 ;; Find related mathematical concepts from EURISKO's knowledge
+                 (let* ((math-concepts (remove-if-not 
+                                       (lambda (u)
+                                         (and u (symbolp u)
+                                              (english u)
+                                              (isa u)
+                                              (or (memb 'math-concept (isa u))
+                                                  (memb 'math-op (isa u))
+                                                  (memb 'structure (generalizations u))
+                                                  (memb 'prime-num (isa u))
+                                                  (memb 'set (generalizations u)))
+                                              (> (safe-worth u) 400)))
+                                       *units*))
+                        
+                        ;; Select 3-4 good examples including the current focus
+                        (selected-concepts (cons f (subseq math-concepts 0 (min 3 (length math-concepts)))))
+                        
+                        ;; Build context from EURISKO's actual mathematical knowledge
+                        (math-context 
+                         (format nil "EURISKO's Mathematical Knowledge:~%~{~A~%~}"
+                                (mapcar (lambda (c)
+                                         (format nil "- ~A: ~A [ISA: ~A, Domain: ~A, Worth: ~A]"
+                                                c
+                                                (or (english c) (abbrev c) "Mathematical structure")
+                                                (or (first (isa c)) "concept")
+                                                (or (first (domain c)) "mathematics")
+                                                (safe-worth c)))
+                                       selected-concepts)))
+                        
+                        (prompt (format nil "~A
 
-~A
+You are helping EURISKO discover new mathematical concepts. Based on the mathematical structures above, suggest a NEW concept that would extend or generalize these ideas.
 
-Generate a concept definition in this format:
-NAME: [concept name]
-ISA: [parent concept]  
-ENGLISH: [description]
-DOMAIN: [domain if applicable]
-WORTH: [estimated worth 100-900]
+Focus on:
+- Set theory and structure operations (like the ones EURISKO knows: set-union, set-intersect, bag-operations)
+- Number theory concepts (building on prime-num, even-num, perfect squares)
+- Algebraic structures and operations
+- Geometric or topological concepts
 
-The new concept should be mathematically meaningful and related to the successful patterns."
-                                       pattern-context))
-                        (response (llm-query prompt :temperature 0.8)))
+Generate exactly this format:
+NAME: [short mathematical name]
+ISA: [parent concept from EURISKO's hierarchy]
+ENGLISH: [precise mathematical definition]
+DOMAIN: [mathematical domain]
+WORTH: [estimated worth 400-900]
+
+Make it mathematically rigorous and useful for EURISKO's discovery process!"
+                                       math-context))
+                        
+                        (response (llm-query prompt :temperature 0.7)))
+                   
                    (when response
                      (let ((concept-def (parse-llm-concept-definition response)))
                        (if concept-def
                            (let ((new-concept (create-concept-from-llm concept-def)))
                              (when new-concept
-                               (cprin1 15 "LLM generated new concept: " new-concept "~%")
-                               (add-task-results 'llm-generated-concept new-concept)
-                               ;; Ensure the new concept has valid WORTH
-                               (unless (and (worth new-concept) (numberp (worth new-concept)) (> (worth new-concept) 0))
-                                 (put new-concept 'worth 400))
+                               (cprin1 15 "H30: Created mathematical concept " new-concept " inspired by " f "~%")
+                               (add-task-results 'llm-mathematical-concept new-concept)
                                t))
                            (progn
-                             (cprin1 40 "H30: Failed to parse LLM concept definition~%")
+                             (cprin1 40 "H30: Failed to parse mathematical concept definition~%")
                              nil))))))
   arity 1)
 
-(defheuristic h31-llm-slot-evolver
+(defheuristic h31-llm-operation-synthesizer
   isa (heuristic op anything)
-  english "IF current task is to modify a unit, THEN use LLM to suggest specific slot modifications"
-  if-potentially-relevant null
-  worth 800
-  abbrev "LLM-guided slot evolution with structured output"
-  if-working-on-task (lambda (task)
-                       (declare (ignore task))
-                       (and *llm-api-key*
-                            (or (is-a-kind-of *cur-slot* 'specializations)
-                                (is-a-kind-of *cur-slot* 'generalizations))))
-  then-compute (lambda (task)
-                 (declare (ignore task))
-                 (cprin1 40 "H31: Requesting LLM slot modification for " *cur-unit* "~%")
-                 (let* ((unit-context (format nil "Unit: ~A, Description: ~A"
-                                             *cur-unit*
-                                             (or (english *cur-unit*) (abbrev *cur-unit*) "No description")))
-                        (operation (if (is-a-kind-of *cur-slot* 'specializations) 
-                                      "specialize" "generalize"))
-                        (prompt (format nil "Suggest a simple slot modification to ~A this mathematical concept:
-
-~A
-
-Provide suggestion in this format:
-SLOT: [simple slot name like WORTH, DOMAIN, or EXAMPLES]
-VALUE: [simple value - a number, symbol, or short text - NOT code or complex expressions]
-REASON: [brief mathematical justification]
-
-Examples of good values:
-- Numbers: 750, 0.5
-- Symbols: MATH-OP, PRIME-NUM  
-- Short text: \"operations on integers\"
-
-Do NOT suggest complex code, functions, or long descriptions as values."
-                                       operation unit-context))
-                        (response (llm-query prompt :temperature 0.5)))
-                   (when response
-                     (let ((slot-suggestion (parse-llm-slot-suggestion response)))
-                       (if (and slot-suggestion (add-slot-from-llm *cur-unit* slot-suggestion))
-                           (progn
-                             (cprin1 15 "LLM suggested simple slot modification for " *cur-unit* "~%")
-                             (add-task-results 'llm-slot-modification slot-suggestion)
-                             t)
-                           (progn
-                             (cprin1 40 "H31: Failed to apply LLM slot suggestion~%")
-                             nil))))))
-  arity 1)
-
-(defheuristic h32-llm-failure-analyzer
-  isa (heuristic op anything)
-  english "IF a concept repeatedly fails in the same way, THEN use LLM to generate structured avoidance rules"
-  if-potentially-relevant null
+  english "IF we're working with mathematical operations, THEN use LLM to suggest new operations"
+  if-potentially-relevant (lambda (f)
+                            (and *llm-api-key*
+                                 (or (memb 'set-op (isa f))
+                                     (memb 'num-op (isa f))
+                                     (memb 'struc-op (isa f))
+                                     (memb 'list-op (isa f))
+                                     (memb 'bag-op (isa f)))))
   worth 750
-  abbrev "LLM-powered failure pattern analysis with rule generation"
-  if-finished-working-on-task (lambda (task)
-                                (declare (ignore task))
-                                (and *llm-api-key*
-                                     ;; Only trigger for repeated failures, not early exploration
-                                     (> *task-num* 50)  ; Allow early exploration
-                                     (let ((new-units (cdr (assoc 'new-units *task-results*))))
-                                       (and (or (null new-units)
-                                               (every (lambda (u) (< (worth u) 200)) new-units))
-                                            ;; Check if this unit has failed before
-                                            (> (count-failures-for-unit *cur-unit*) 2)))))
-  then-compute (lambda (task)
-                 (declare (ignore task))
-                 (let* ((operation (if (is-a-kind-of *cur-slot* 'specializations) 
-                                      "specialization" "generalization"))
-                        (failure-context (format nil "Repeated failed ~A of ~A" operation *cur-unit*))
-                        (prompt (format nil "This mathematical operation has failed multiple times: ~A
+  abbrev "LLM-guided mathematical operation synthesis"
+  then-compute (lambda (f)
+                 (cprin1 40 "H31: Synthesizing operations related to " f "~%")
+                 
+                 ;; Find operations in the same category
+                 (let* ((operation-type (cond 
+                                        ((memb 'set-op (isa f)) 'set-op)
+                                        ((memb 'num-op (isa f)) 'num-op)
+                                        ((memb 'struc-op (isa f)) 'struc-op)
+                                        ((memb 'list-op (isa f)) 'list-op)
+                                        ((memb 'bag-op (isa f)) 'bag-op)
+                                        (t 'math-op)))
+                        
+                        ;; Get examples of this operation type
+                        (related-ops (remove-if-not 
+                                     (lambda (u)
+                                       (and u (memb operation-type (isa u))
+                                            (english u)
+                                            (arity u)
+                                            (domain u)
+                                            (range u)))
+                                     (examples operation-type)))
+                        
+                        (op-examples (subseq related-ops 0 (min 4 (length related-ops))))
+                        
+                        (context (format nil "EURISKO's ~A Operations:~%~{~A~%~}"
+                                        operation-type
+                                        (mapcar (lambda (op)
+                                                 (format nil "- ~A: ~A [Arity: ~A, Domain: ~A -> Range: ~A]"
+                                                        op
+                                                        (english op)
+                                                        (arity op)
+                                                        (domain op)
+                                                        (range op)))
+                                               op-examples)))
+                        
+                        (prompt (format nil "~A
 
-This suggests a systematic issue, not random exploration failure.
-Analyze why this type of operation consistently fails and suggest a prevention rule.
+Suggest a NEW mathematical operation that complements these existing ~A operations.
 
-Provide in this format:
-IF: [condition that indicates when to avoid this type of operation]
-THEN: [action to take instead]  
-WORTH: [estimated worth of this rule 100-800]
+The operation should:
+1. Work with the same mathematical structures (sets, numbers, structures, etc.)
+2. Have clear mathematical meaning and utility
+3. Fill a gap in EURISKO's current operation set
+4. Be implementable with a concrete algorithm
 
-Focus on mathematical principles and structural properties that lead to systematic failure."
-                                       failure-context))
+Generate exactly this format:
+NAME: [operation name]
+ISA: [single parent concept like ~A or MATH-OP]
+ENGLISH: [precise mathematical description of what the operation does]
+ARITY: [number of arguments]
+DOMAIN: [simple input types like NNUMBER or SET]
+RANGE: [simple output type like NNUMBER or SET]
+WORTH: [estimated worth 400-800]
+
+Be mathematically precise and use simple concept names!"
+                                       context operation-type operation-type))
+                        
                         (response (llm-query prompt :temperature 0.6)))
+                   
                    (when response
-                     (let ((rule-def (parse-llm-rule response)))
-                       (if rule-def
-                           (let ((new-rule (create-avoidance-rule-from-llm rule-def failure-context)))
-                             (when new-rule
-                               (cprin1 15 "LLM generated avoidance rule for repeated failure: " new-rule "~%")
-                               (add-task-results 'llm-avoidance-rule new-rule)
+                     (let ((op-def (parse-llm-operation-definition response)))
+                       (if op-def
+                           (let ((new-op (create-operation-from-llm op-def)))
+                             (when new-op
+                               (cprin1 15 "H31: Created operation " new-op " in " operation-type " category~%")
+                               (add-task-results 'llm-mathematical-operation new-op)
                                t))
                            (progn
-                             (cprin1 40 "H32: Failed to parse LLM rule~%")
+                             (cprin1 40 "H31: Failed to parse operation definition~%")
                              nil))))))
   arity 1)
 
-(defheuristic h33-llm-pattern-recognizer
+(defheuristic h32-llm-structure-analyzer
   isa (heuristic op anything)
-  english "IF we have multiple examples of a concept, THEN use LLM to identify mathematical patterns"
+  english "IF we discover interesting mathematical structures, THEN use LLM to analyze their properties"
   if-potentially-relevant (lambda (f)
                             (and *llm-api-key*
-                                 (> (length (examples f)) 4)
-                                 (memb 'math-concept (isa f))))
+                                 (or (memb 'structure (generalizations f))
+                                     (memb 'set (generalizations f))
+                                     (memb 'bag (generalizations f))
+                                     (memb 'list (generalizations f)))
+                                 (specializations f)
+                                 (> (length (specializations f)) 1)))
   worth 700
-  abbrev "LLM-guided pattern recognition and concept refinement"
+  abbrev "LLM-guided mathematical structure analysis"
   then-compute (lambda (f)
-                 (cprin1 40 "H33: Analyzing patterns in examples of " f "~%")
-                 (let* ((example-list (subseq (examples f) 0 (min 10 (length (examples f)))))
-                        (concept-context (format nil "Concept: ~A (~A), Examples: ~A"
-                                               f (english f) example-list))
-                        (prompt (format nil "Analyze these examples of a mathematical concept:
+                 (cprin1 40 "H32: Analyzing mathematical structure " f "~%")
+                 
+                 (let* ((struct-info (format nil "Structure: ~A
+Description: ~A
+Generalizations: ~A
+Specializations: ~A
+Related Operations: ~A"
+                                            f
+                                            (english f)
+                                            (generalizations f)
+                                            (specializations f)
+                                            (remove-if-not (lambda (op)
+                                                            (or (memb f (domain op))
+                                                                (memb f (range op))))
+                                                          *units*)))
+                        
+                        (prompt (format nil "~A
 
-~A
+Analyze this mathematical structure and suggest either:
+1. A missing property/slot that would better characterize this structure
+2. A mathematical relationship between this structure and its specializations
+3. A structural invariant or important mathematical property
 
-Identify key mathematical patterns or properties. Suggest either:
-1. A new related concept that captures a pattern you see
-2. A slot that should be added to better characterize this concept
+Focus on mathematical concepts like:
+- Algebraic properties (associativity, commutativity, etc.)
+- Structural properties (finiteness, boundedness, etc.)  
+- Relationships between generalizations and specializations
+- Important mathematical theorems or principles
 
-Format your response as either:
-CONCEPT - NAME: [name] ISA: [parent] ENGLISH: [description] WORTH: [worth]
-OR  
-SLOT - SLOT: [slot name] VALUE: [slot value] REASON: [mathematical justification]"
-                                       concept-context))
-                        (response (llm-query prompt :temperature 0.7)))
+Generate exactly this format:
+ANALYSIS_TYPE: [PROPERTY, RELATIONSHIP, or INVARIANT]
+SLOT: [slot name for the property]
+VALUE: [mathematical description or formal property]
+REASON: [mathematical justification]
+WORTH: [estimated worth 300-700]"
+                                       struct-info))
+                        
+                        (response (llm-query prompt :temperature 0.5)))
+                   
                    (when response
-                     (cond
-                       ((search "CONCEPT -" response)
-                        (let ((concept-def (parse-llm-concept-definition 
-                                           (subseq response (+ (search "CONCEPT -" response) 10)))))
-                          (when concept-def
-                            (let ((new-concept (create-concept-from-llm concept-def)))
-                              (when new-concept
-                                (cprin1 15 "LLM identified pattern and created: " new-concept "~%")
-                                (add-task-results 'llm-pattern-concept new-concept)
-                                t)))))
-                       ((search "SLOT -" response)
-                        (let ((slot-def (parse-llm-slot-suggestion 
-                                        (subseq response (+ (search "SLOT -" response) 7)))))
-                          (when (and slot-def (add-slot-from-llm f slot-def))
-                            (cprin1 15 "LLM identified pattern and added slot to " f "~%")
-                            (add-task-results 'llm-pattern-slot slot-def)
-                            t)))
-                       (t (cprin1 40 "H33: Could not parse LLM pattern analysis~%")
-                          nil)))))
-  arity 1)
-
-(defheuristic h34-llm-relation-discoverer
-  isa (heuristic op anything)
-  english "IF we have related concepts, THEN use LLM to discover mathematical relationships"
-  if-potentially-relevant (lambda (f)
-                            (and *llm-api-key*
-                                 (generalizations f)
-                                 (specializations f)))
-  worth 650
-  abbrev "LLM-guided discovery of mathematical relationships"
-  then-compute (lambda (f)
-                 (cprin1 40 "H34: Discovering relationships for " f "~%")
-                 (let* ((genls (subseq (generalizations f) 0 (min 3 (length (generalizations f)))))
-                        (specs (subseq (specializations f) 0 (min 3 (length (specializations f)))))
-                        (relationship-context (format nil "Concept: ~A, Generalizations: ~A, Specializations: ~A"
-                                                     f genls specs))
-                        (prompt (format nil "Given this mathematical concept hierarchy:
-
-~A
-
-Suggest a mathematical relationship or property that connects these concepts.
-
-Format:
-SLOT: [relationship name]
-VALUE: [mathematical relationship or property]
-REASON: [why this relationship is mathematically significant]"
-                                       relationship-context))
-                        (response (llm-query prompt :temperature 0.6)))
-                   (when response
-                     (let ((relation-def (parse-llm-slot-suggestion response)))
-                       (if (and relation-def (add-slot-from-llm f relation-def))
+                     (let ((analysis (parse-llm-structure-analysis response)))
+                       (if (and analysis (add-slot-from-llm f analysis))
                            (progn
-                             (cprin1 15 "LLM discovered relationship for " f "~%")
-                             (add-task-results 'llm-relationship relation-def)
+                             (cprin1 15 "H32: Added mathematical property to " f "~%")
+                             (add-task-results 'llm-structure-analysis analysis)
                              t)
                            (progn
-                             (cprin1 40 "H34: Failed to establish LLM relationship~%")
+                             (cprin1 40 "H32: Failed to apply structural analysis~%")
                              nil))))))
   arity 1)
 
-(defheuristic h35-llm-insight-implementer
+(defheuristic h33-llm-theorem-suggester
   isa (heuristic op anything)
-  english "IF we have accumulated LLM insights, THEN convert them into working EURISKO heuristics"
+  english "IF we have related mathematical concepts with good examples, THEN suggest mathematical conjectures"
   if-potentially-relevant (lambda (f)
-                            (declare (ignore f))
                             (and *llm-api-key*
-                                 (> (length *llm-suggested-rules*) 2)
-                                 ;; Only run periodically to avoid spam
-                                 (= (mod *task-num* 25) 0)))
-  worth 600
-  abbrev "Automatic implementation of LLM-generated heuristic insights"
+                                 (memb 'math-concept (isa f))
+                                 (examples f)
+                                 (> (length (examples f)) 2)
+                                 (generalizations f)
+                                 (> (safe-worth f) 600)))
+  worth 650
+  abbrev "LLM-guided mathematical conjecture generation"
   then-compute (lambda (f)
-                 (declare (ignore f))
-                 (cprin1 40 "H35: Converting LLM insights into working heuristics~%")
-                 (let ((implemented-count 0))
-                   (dolist (rule-def *llm-suggested-rules*)
-                     (when (and rule-def (not (getf rule-def 'implemented)))
-                       (let ((success (implement-llm-rule rule-def)))
-                         (when success
-                           (incf implemented-count)
-                           (setf (getf rule-def 'implemented) t)))))
-                   (when (> implemented-count 0)
-                     (cprin1 15 "H35: Successfully implemented " implemented-count " LLM-generated heuristics~%")
-                     (add-task-results 'implemented-heuristics implemented-count)
-                     t)))
+                 (cprin1 40 "H33: Generating mathematical conjectures about " f "~%")
+                 
+                 (let* ((concept-info (format nil "Mathematical Concept: ~A
+Description: ~A  
+Examples: ~A
+Generalizations: ~A
+Specializations: ~A
+Worth: ~A"
+                                             f
+                                             (english f)
+                                             (subseq (examples f) 0 (min 5 (length (examples f))))
+                                             (generalizations f)
+                                             (specializations f)
+                                             (safe-worth f)))
+                        
+                        (prompt (format nil "~A
+
+Based on this mathematical concept and its examples, suggest a mathematical conjecture or theorem that EURISKO could explore.
+
+The conjecture should:
+1. Be testable using EURISKO's existing operations
+2. Relate to the examples and mathematical structure shown
+3. Be mathematically interesting and non-trivial
+4. Connect this concept to other mathematical areas
+
+Generate exactly this format:
+CONJECTURE: [precise mathematical statement]
+DOMAIN: [what mathematical objects this applies to]
+TESTABLE_WITH: [EURISKO operations that could verify this]
+MATHEMATICAL_SIGNIFICANCE: [why this matters mathematically]
+WORTH: [estimated worth 300-800]
+
+Be precise and mathematically rigorous!"
+                                       concept-info))
+                        
+                        (response (llm-query prompt :temperature 0.6)))
+                   
+                   (when response
+                     (let ((conjecture (parse-llm-conjecture response)))
+                       (if conjecture
+                           (let ((new-conjecture (create-conjecture-from-llm conjecture f)))
+                             (when new-conjecture
+                               (cprin1 15 "H33: Generated mathematical conjecture about " f "~%")
+                               (add-task-results 'llm-mathematical-conjecture new-conjecture)
+                               t))
+                           (progn
+                             (cprin1 40 "H33: Failed to parse mathematical conjecture~%")
+                             nil))))))
   arity 1)
+
+;;; =============================================================================
+;;; ENHANCED PARSING FUNCTIONS FOR MATHEMATICAL CONTENT
+;;; =============================================================================
+
+(defun parse-llm-operation-definition (response)
+  "Parse LLM response into operation definition"
+  (when (and response (stringp response))
+    (let ((lines (split-string response #\Newline))
+          (op-def '()))
+      (dolist (line lines)
+        (let ((trimmed (string-trim '(#\Space #\Tab) line)))
+          (cond
+            ((search "NAME:" trimmed)
+             (push (cons 'name (string-trim '(#\Space) (subseq trimmed 5))) op-def))
+            ((search "ISA:" trimmed)
+             (let ((isa-text (string-trim '(#\Space) (subseq trimmed 4))))
+               ;; Handle simple case - just read the first symbol
+               (push (cons 'isa (list (intern (string-upcase 
+                                              (first (split-string isa-text #\Space)))))) op-def)))
+            ((search "ENGLISH:" trimmed)
+             (push (cons 'english (string-trim '(#\Space) (subseq trimmed 8))) op-def))
+            ((search "ARITY:" trimmed)
+             (push (cons 'arity (parse-integer (string-trim '(#\Space) (subseq trimmed 6)) :junk-allowed t)) op-def))
+            ((search "DOMAIN:" trimmed)
+             (let ((domain-text (string-trim '(#\Space) (subseq trimmed 7))))
+               ;; Handle simple domain like "NNUMBER" or "SET"
+               (push (cons 'domain (list (intern (string-upcase domain-text)))) op-def)))
+            ((search "RANGE:" trimmed)
+             (let ((range-text (string-trim '(#\Space) (subseq trimmed 6))))
+               ;; Handle simple range like "NNUMBER" or "SET"  
+               (push (cons 'range (list (intern (string-upcase range-text)))) op-def)))
+            ((search "WORTH:" trimmed)
+             (push (cons 'worth (parse-integer (string-trim '(#\Space) (subseq trimmed 6)) :junk-allowed t)) op-def)))))
+      (when op-def (nreverse op-def)))))
+
+(defun parse-llm-structure-analysis (response)
+  "Parse LLM structural analysis response"
+  (when (and response (stringp response))
+    (let ((lines (split-string response #\Newline))
+          (analysis '()))
+      (dolist (line lines)
+        (let ((trimmed (string-trim '(#\Space #\Tab) line)))
+          (cond
+            ((search "ANALYSIS_TYPE:" trimmed)
+             (push (cons 'analysis-type (string-trim '(#\Space) (subseq trimmed 14))) analysis))
+            ((search "SLOT:" trimmed)
+             (push (cons 'slot (intern (string-upcase (string-trim '(#\Space) (subseq trimmed 5))))) analysis))
+            ((search "VALUE:" trimmed)
+             (push (cons 'value (string-trim '(#\Space) (subseq trimmed 6))) analysis))
+            ((search "REASON:" trimmed)
+             (push (cons 'reason (string-trim '(#\Space) (subseq trimmed 7))) analysis))
+            ((search "WORTH:" trimmed)
+             (push (cons 'worth (parse-integer (string-trim '(#\Space) (subseq trimmed 6)) :junk-allowed t)) analysis)))))
+      (when analysis (nreverse analysis)))))
+
+(defun parse-llm-conjecture (response)
+  "Parse LLM conjecture response"
+  (when (and response (stringp response))
+    (let ((lines (split-string response #\Newline))
+          (conjecture '()))
+      (dolist (line lines)
+        (let ((trimmed (string-trim '(#\Space #\Tab) line)))
+          (cond
+            ((search "CONJECTURE:" trimmed)
+             (push (cons 'conjecture (string-trim '(#\Space) (subseq trimmed 11))) conjecture))
+            ((search "DOMAIN:" trimmed)
+             (push (cons 'domain (string-trim '(#\Space) (subseq trimmed 7))) conjecture))
+            ((search "TESTABLE_WITH:" trimmed)
+             (push (cons 'testable-with (string-trim '(#\Space) (subseq trimmed 14))) conjecture))
+            ((search "MATHEMATICAL_SIGNIFICANCE:" trimmed)
+             (push (cons 'significance (string-trim '(#\Space) (subseq trimmed 26))) conjecture))
+            ((search "WORTH:" trimmed)
+             (push (cons 'worth (parse-integer (string-trim '(#\Space) (subseq trimmed 6)) :junk-allowed t)) conjecture)))))
+      (when conjecture (nreverse conjecture)))))
+
+(defun create-operation-from-llm (op-def)
+  "Create a EURISKO operation from LLM definition"
+  (when op-def
+    (let* ((name-str (cdr (assoc 'name op-def)))
+           (op-name (when name-str (intern (string-upcase name-str)))))
+      (when op-name
+        (cprin1 40 "Creating LLM-generated operation: " op-name "~%")
+        (create-unit op-name op-name)
+        
+        ;; Set operation properties
+        (dolist (prop op-def)
+          (case (car prop)
+            (isa (put op-name 'isa (cdr prop)))
+            (english (put op-name 'english (cdr prop)))
+            (arity (put op-name 'arity (cdr prop)))
+            (domain (put op-name 'domain (cdr prop)))
+            (range (put op-name 'range (cdr prop)))
+            (worth (put op-name 'worth (or (cdr prop) 400)))))
+        
+        ;; Ensure valid WORTH
+        (unless (and (worth op-name) (numberp (worth op-name)) (> (worth op-name) 0))
+          (put op-name 'worth 400))
+        
+        ;; Mark as LLM-generated and eliminate applics
+        (put op-name 'creditors '(llm-generated))
+        (put op-name 'elim-slots '(applics))
+        
+        op-name))))
+
+(defun create-conjecture-from-llm (conjecture-def about-concept)
+  "Create a EURISKO conjecture from LLM definition"
+  (when conjecture-def
+    (let* ((conjecture-text (cdr (assoc 'conjecture conjecture-def)))
+           (conjecture-name (intern (format nil "CONJEC-LLM-~A" (length *llm-suggested-rules*)))))
+      (when conjecture-text
+        (cprin1 40 "Creating LLM-generated conjecture: " conjecture-name "~%")
+        (create-unit conjecture-name conjecture-name)
+        
+        (put conjecture-name 'isa '(conjecture))
+        (put conjecture-name 'english conjecture-text)
+        (put conjecture-name 'conjecture-about about-concept)
+        (put conjecture-name 'worth (or (cdr (assoc 'worth conjecture-def)) 400))
+        (put conjecture-name 'creditors '(llm-generated))
+        
+        ;; Add to conjectures list if it exists
+        (when (fboundp 'union-prop)
+          (union-prop about-concept 'conjectures conjecture-name))
+        
+        conjecture-name))))
+
+;;; =============================================================================
+;;; MATHEMATICAL QUALITY FILTERS
+;;; =============================================================================
+
+(defun is-mathematical-concept (unit)
+  "Check if unit represents actual mathematics, not meta-reasoning"
+  (when (and unit (symbolp unit))
+    (let ((isa-list (isa unit))
+          (english-desc (english unit)))
+      (and isa-list
+           english-desc
+           (stringp english-desc)
+           ;; Must be mathematical
+           (or (memb 'math-concept isa-list)
+               (memb 'math-op isa-list)
+               (memb 'math-obj isa-list)
+               (memb 'structure (generalizations unit))
+               (memb 'prime-num isa-list)
+               (memb 'set isa-list))
+           ;; Not meta-reasoning about EURISKO
+           (not (search "Specializations of H" english-desc))
+           (not (search "% are losers" english-desc))
+           (not (search "heuristic" english-desc))))))
+
+;;; =============================================================================
+;;; INITIALIZATION
+;;; =============================================================================
+
+(defun register-mathematical-llm-heuristics ()
+  "Register the redesigned mathematical LLM heuristics"
+  (let ((math-heuristics '(h30-llm-mathematical-explorer
+                          h31-llm-operation-synthesizer
+                          h32-llm-structure-analyzer
+                          h33-llm-theorem-suggester)))
+    
+    (when (fboundp 'union-prop)
+      (dolist (h math-heuristics)
+        (union-prop 'heuristic 'examples h)))
+    
+    (format t "Registered ~A mathematical LLM heuristics~%" (length math-heuristics))))
+
+(defun initialize-mathematical-llm-system ()
+  "Initialize the redesigned mathematical LLM system"
+  (cprin1 13 "~%Initializing Mathematical LLM Discovery System...~%")
+  (cprin1 13 "Heuristics: H30-H33 (Mathematical exploration, operation synthesis, structure analysis, theorem suggestion)~%")
+  (cprin1 13 "Designed to work with EURISKO's actual mathematical knowledge~%")
+  (register-mathematical-llm-heuristics))
 
 ;;; =============================================================================
 ;;; LLM CONFIGURATION AND UTILITIES
@@ -858,39 +1065,5 @@ REASON: [why this relationship is mathematically significant]"
   (format t "Slots: ~A~%" *llm-generated-slots*)
   (format t "Rules: ~A~%" *llm-suggested-rules*))
 
-;;; =============================================================================
-;;; HEURISTIC REGISTRATION
-;;; =============================================================================
-
-(defun register-llm-heuristics ()
-  "Register LLM heuristics with the EURISKO system"
-  (let ((llm-heuristics '(h30-llm-concept-generator 
-                         h31-llm-slot-evolver
-                         h32-llm-failure-analyzer
-                         h33-llm-pattern-recognizer
-                         h34-llm-relation-discoverer
-                         h35-llm-insight-implementer)))
-    
-    ;; Add to examples of 'heuristic if that's how EURISKO tracks them
-    (when (fboundp 'union-prop)
-      (dolist (h llm-heuristics)
-        (union-prop 'heuristic 'examples h)))
-    
-    (format t "Registered ~A LLM heuristics~%" (length llm-heuristics))))
-
-;;; =============================================================================
-;;; INITIALIZATION
-;;; =============================================================================
-
-(defun initialize-llm-heuristics ()
-  "Initialize LLM-enhanced heuristics system"
-  (cprin1 13 "~%Initializing LLM-enhanced EURISKO heuristics...~%")
-  (cprin1 13 "Added heuristics: H30-H35 (LLM-guided symbolic integration)~%")
-  (cprin1 13 "Use (configure-llm :ollama :model \"qwen2.5:14b\") to enable LLM features~%")
-  (cprin1 13 "Use (fix-nil-worth-values) to fix any corrupted WORTH values~%")
-  (cprin1 13 "Use (diagnose-worth-issues) to check for WORTH problems~%")
-  (register-llm-heuristics)
-  (llm-status))
-
 ;; Auto-initialize when loaded
-(initialize-llm-heuristics)
+(initialize-mathematical-llm-system)
