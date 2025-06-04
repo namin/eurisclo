@@ -32,6 +32,51 @@
       (format t "Will use mock responses only.~%"))))
 
 ;;; =============================================================================
+;;; UTILITY FUNCTIONS FOR FIXING CORRUPT UNITS
+;;; =============================================================================
+
+(defun fix-nil-worth-values ()
+  "Fix any units that have NIL WORTH values"
+  (let ((fixed-count 0))
+    (dolist (unit *all-units*)
+      (when (and unit (null (worth unit)))
+        (put unit 'worth 400)
+        (incf fixed-count)
+        (cprin1 40 "Fixed NIL WORTH for unit: " unit "~%")))
+    (cprin1 15 "Fixed " fixed-count " units with NIL WORTH values~%")
+    fixed-count))
+
+(defun safe-worth (unit)
+  "Get WORTH of unit, defaulting to 400 if NIL"
+  (or (worth unit) 400))
+
+(defun diagnose-worth-issues ()
+  "Diagnose and report units with problematic WORTH values"
+  (let ((nil-worth-units '())
+        (invalid-worth-units '())
+        (total-units 0))
+    (dolist (unit *all-units*)
+      (when unit
+        (incf total-units)
+        (let ((worth-val (worth unit)))
+          (cond
+            ((null worth-val)
+             (push unit nil-worth-units))
+            ((not (numberp worth-val))
+             (push unit invalid-worth-units))
+            ((<= worth-val 0)
+             (push unit invalid-worth-units))))))
+    (format t "~%=== WORTH Diagnosis ===~%")
+    (format t "Total units: ~A~%" total-units)
+    (format t "Units with NIL WORTH: ~A~%" (length nil-worth-units))
+    (format t "Units with invalid WORTH: ~A~%" (length invalid-worth-units))
+    (when nil-worth-units
+      (format t "NIL WORTH units: ~A~%" (subseq nil-worth-units 0 (min 10 (length nil-worth-units)))))
+    (when invalid-worth-units
+      (format t "Invalid WORTH units: ~A~%" (subseq invalid-worth-units 0 (min 10 (length invalid-worth-units)))))
+    (+ (length nil-worth-units) (length invalid-worth-units))))
+
+;;; =============================================================================
 ;;; SHARED HEURISTIC VARIABLES
 ;;; =============================================================================
 
@@ -363,17 +408,34 @@
         ;; Set properties from LLM definition
         (dolist (prop concept-def)
           (case (car prop)
-            (isa (put concept-name 'isa (cdr prop)))
+            (isa 
+             ;; Ensure ISA is always a list
+             (let ((isa-value (cdr prop)))
+               (put concept-name 'isa 
+                    (if (listp isa-value) isa-value (list isa-value)))))
             (english (put concept-name 'english (cdr prop)))
-            (domain (put concept-name 'domain (cdr prop)))
-            (worth (put concept-name 'worth (cdr prop)))))
+            (domain 
+             ;; Ensure DOMAIN is always a list  
+             (let ((domain-value (cdr prop)))
+               (put concept-name 'domain
+                    (if (listp domain-value) domain-value (list domain-value)))))
+            (worth 
+             ;; Ensure WORTH is always a valid number
+             (let ((worth-value (cdr prop)))
+               (put concept-name 'worth 
+                    (if (and worth-value (numberp worth-value) (> worth-value 0))
+                        worth-value
+                        400)))))) ; Default worth if invalid
+        ;; Ensure all LLM concepts have a WORTH value
+        (unless (and (worth concept-name) (numberp (worth concept-name)) (> (worth concept-name) 0))
+          (put concept-name 'worth 400))
         ;; Mark as LLM-generated
         (put concept-name 'creditors '(llm-generated))
         (push concept-name *llm-generated-concepts*)
         concept-name))))
 
 (defun add-slot-from-llm (unit slot-def)
-  "Add a slot to a unit based on LLM suggestion"
+  "Add a slot to a unit based on LLM suggestion - enhanced with WORTH validation"
   (when (and unit slot-def)
     (let ((slot-name (cdr (assoc 'slot slot-def)))
           (slot-value-text (cdr (assoc 'value slot-def)))
@@ -387,6 +449,17 @@
             (put unit slot-name slot-value)
             (when reason
               (put unit (intern (format nil "~A-REASON" slot-name)) reason))
+            
+            ;; Special handling: if we just set WORTH to something invalid, fix it
+            (when (and (eq slot-name 'worth) (not (and (numberp slot-value) (> slot-value 0))))
+              (put unit 'worth 400)
+              (cprin1 40 "Corrected invalid WORTH value for " unit " to 400~%"))
+            
+            ;; Ensure unit always has a valid WORTH
+            (unless (and (worth unit) (numberp (worth unit)) (> (worth unit) 0))
+              (put unit 'worth 400)
+              (cprin1 40 "Ensured " unit " has valid WORTH value~%"))
+            
             (push (list unit slot-name slot-value) *llm-generated-slots*)
             (cprin1 40 "Successfully added slot " slot-name " with value " slot-value "~%")
             t))))))
@@ -462,7 +535,6 @@
     (error () 
       (if junk-allowed nil (error "Not a valid float")))))
 
-
 (defun create-avoidance-rule-from-llm (rule-def context)
   "Create an avoidance heuristic from LLM-generated rule"
   (when rule-def
@@ -481,7 +553,7 @@
         rule-name))))
 
 ;;; =============================================================================
-;;; REDESIGNED LLM-ENHANCED HEURISTICS
+;;; REDESIGNED LLM-ENHANCED HEURISTICS (with WORTH safety)
 ;;; =============================================================================
 
 (defheuristic h30-llm-concept-generator
@@ -522,6 +594,9 @@ The new concept should be mathematically meaningful and related to the successfu
                              (when new-concept
                                (cprin1 15 "LLM generated new concept: " new-concept "~%")
                                (add-task-results 'llm-generated-concept new-concept)
+                               ;; Ensure the new concept has valid WORTH
+                               (unless (and (worth new-concept) (numberp (worth new-concept)) (> (worth new-concept) 0))
+                                 (put new-concept 'worth 400))
                                t))
                            (progn
                              (cprin1 40 "H30: Failed to parse LLM concept definition~%")
@@ -808,8 +883,10 @@ REASON: [why this relationship is mathematically significant]"
 (defun initialize-llm-heuristics ()
   "Initialize LLM-enhanced heuristics system"
   (cprin1 13 "~%Initializing LLM-enhanced EURISKO heuristics...~%")
-  (cprin1 13 "Added heuristics: H30-H34 (LLM-guided symbolic integration)~%")
+  (cprin1 13 "Added heuristics: H30-H35 (LLM-guided symbolic integration)~%")
   (cprin1 13 "Use (configure-llm :ollama :model \"qwen2.5:14b\") to enable LLM features~%")
+  (cprin1 13 "Use (fix-nil-worth-values) to fix any corrupted WORTH values~%")
+  (cprin1 13 "Use (diagnose-worth-issues) to check for WORTH problems~%")
   (register-llm-heuristics)
   (llm-status))
 
