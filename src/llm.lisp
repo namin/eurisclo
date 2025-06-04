@@ -155,12 +155,13 @@
                (first-part (first parts))
                (text (cdr (assoc :text first-part))))
           text))
+       (:ollama
+        ;; Ollama returns response in "response" field
+        (cdr (assoc :response response)))
        (:openai
         (nested-getf response '("choices" 0 "message" "content")))
        (:claude
         (nested-getf response '("content" 0 "text")))
-       (:ollama
-        (nested-getf response '("response")))
        (otherwise
         (format nil "Unknown provider: ~A" provider))))
     
@@ -189,9 +190,9 @@
          (api-key *llm-api-key*))
     
     (handler-case
-        (if (and api-key (stringp api-key) (not (string= api-key "")))
-            (case provider
-              (:gemini
+        (case provider
+          (:gemini
+           (if (and api-key (stringp api-key) (not (string= api-key "")))
                (let* ((json-string (format nil "{\"contents\":[{\"parts\":[{\"text\":\"~A\"}]}],\"generationConfig\":{\"temperature\":~A,\"maxOutputTokens\":~A}}" 
                                           prompt 
                                           (or temperature *llm-temperature*)
@@ -208,13 +209,32 @@
                                                   response
                                                   (map 'string #'code-char response))))
                          (cl-json:decode-json-from-string response-string))
-                       (format nil "API Error: Status ~A" status-code)))))
-              (:openai
-               (format nil "OpenAI not implemented yet"))
-              (otherwise
-               (format nil "Provider ~A not implemented" provider)))
-            
-            (format nil "Mock ~A response - no API key" provider))
+                       (format nil "API Error: Status ~A" status-code))))
+               (format nil "Mock Gemini response - no API key")))
+          
+          (:ollama
+           ;; Ollama doesn't need an API key
+           (let* ((json-string (format nil "{\"model\":\"~A\",\"prompt\":\"~A\",\"stream\":false,\"options\":{\"temperature\":~A}}" 
+                                      model prompt (or temperature *llm-temperature*)))
+                  (full-url base-url))
+             (multiple-value-bind (response status-code)
+                 (drakma:http-request full-url
+                                    :method :post
+                                    :content-type "application/json"
+                                    :content json-string
+                                    :want-stream nil)
+               (if (= status-code 200)
+                   (let ((response-string (if (stringp response)
+                                              response
+                                              (map 'string #'code-char response))))
+                     (cl-json:decode-json-from-string response-string))
+                   (format nil "Ollama Error: Status ~A" status-code)))))
+          
+          (:openai
+           (format nil "OpenAI not implemented yet"))
+          
+          (otherwise
+           (format nil "Provider ~A not implemented" provider)))
       (error (e)
         (format nil "Error calling LLM: ~A" e)))))
 
@@ -614,6 +634,13 @@
   worth 800
   abbrev "LLM-guided example discovery"
   then-compute (lambda (f)
+                 ;; DOCUMENTATION: This heuristic replaces random example generation
+                 ;; with contextually meaningful examples. Instead of generating
+                 ;; arbitrary instances, it asks the LLM to suggest examples that
+                 ;; are representative, diverse, and useful for testing the concept.
+                 ;; This dramatically improves the quality of examples used for
+                 ;; concept validation and development.
+                 (cprin1 40 "H35: Requesting LLM to generate meaningful examples for " f "~%")
                  (let* ((context (format nil "Unit: ~A. Description: ~A. Domain: ~A" 
                                        f (or (and (fboundp 'english) (english f)) 
                                             (and (fboundp 'abbrev) (abbrev f))) 
@@ -630,17 +657,23 @@
                                                 Format: Example1, Example2, Example3"
                                             f context)
                                     :temperature 0.6)))
-                   (when suggestion
-                     ;; Parse examples from suggestion and add them
-                     (let ((examples (mapcar (lambda (s) (string-trim '(#\Space #\Tab #\Newline) s))
-                                           (split-string suggestion #\,))))
-                       (dolist (ex examples)
-                         (when (and ex (not (string= ex "")))
-                           (union-prop f 'examples (intern (string-upcase ex)))))
-                       (add-task-results 'llm-examples 
-                                        `((unit ,f) (examples ,examples)))
-                       (cprin1 48 "LLM suggested examples for " f ": " examples "~%")
-                       t))))
+                   (if suggestion
+                       (progn
+                         (cprin1 40 "H35: LLM provided example suggestions for " f "~%")
+                         ;; Parse examples from suggestion and add them
+                         (let ((examples (mapcar (lambda (s) (string-trim '(#\Space #\Tab #\Newline) s))
+                                               (split-string suggestion #\,))))
+                           (dolist (ex examples)
+                             (when (and ex (not (string= ex "")))
+                               (union-prop f 'examples (intern (string-upcase ex)))))
+                           (add-task-results 'llm-examples 
+                                            `((unit ,f) (examples ,examples)))
+                           (cprin1 40 "H35: Added " (length examples) " LLM-suggested examples to " f "~%")
+                           (cprin1 48 "LLM suggested examples for " f ": " examples "~%")
+                           t))
+                       (progn
+                         (cprin1 40 "H35: LLM failed to generate examples for " f "~%")
+                         nil))))
   arity 1)
 
 ;;; =============================================================================
@@ -650,6 +683,7 @@
 (defun configure-llm (provider &key api-key model temperature max-tokens)
   "Configure LLM settings"
   (setf *llm-provider* provider)
+  ;; Only set API key if provided - Ollama doesn't need one
   (when api-key (setf *llm-api-key* api-key))
   (when model (setf *llm-model* model))
   (when temperature (setf *llm-temperature* temperature))
