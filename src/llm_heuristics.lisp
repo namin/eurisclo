@@ -523,6 +523,223 @@ RATIONALE: another rationale")
   arity 1)
 
 ;;; =============================================================================
+;;; LLM heuristic to implement concepts as code
+;;; =============================================================================
+
+;;; Global variables for code generation
+(defvar *llm-generated-code* nil)
+(defvar *allowed-eurisko-symbols* 
+  '(lambda let let* progn
+    ;; List operations
+    cons car cdr caar cadr cdar cddr caddr list append remove member 
+    remove-if remove-if-not copy-list reverse length nth nthcdr
+    ;; Predicates  
+    consp atom listp null equal eq eql = < > <= >= zerop plusp minusp
+    numberp integerp symbolp
+    ;; Logic
+    and or not cond if when unless
+    ;; Arithmetic
+    + - * / 1+ 1- floor ceiling round mod rem min max abs
+    ;; Eurisko-specific
+    run-alg run-defn random-choose subset divides
+    ;; Variables (common in Eurisko patterns)
+    x y z s s1 s2 n m i j k a b c d e f g h
+    nil t))
+
+(defun validate-code-tree (code allowed-symbols)
+  "Recursively validate that code only uses allowed symbols"
+  (cond ((null code) t)
+        ((numberp code) t)  ; Numbers are always allowed
+        ((stringp code) t)  ; Strings are allowed
+        ((keywordp code) t) ; Keywords allowed
+        ((symbolp code) 
+         (or (member code allowed-symbols)
+             (member code lambda-list-keywords))) ; Allow &optional, &rest, etc
+        ((listp code)
+         ;; Special handling for quoted forms
+         (cond ((eq (first code) 'quote) t)
+               ((eq (first code) 'function) 
+                (validate-code-tree (second code) allowed-symbols))
+               (t (every (lambda (x) (validate-code-tree x allowed-symbols)) code))))
+        (t nil)))
+
+(defun parse-llm-code (response)
+  "Parse and validate LLM-generated code"
+  (setf *llm-generated-code* nil)
+  (handler-case
+      (let ((code nil))
+        ;; Try to extract lambda from response
+        (cond 
+          ;; Direct lambda expression
+          ((search "(lambda" response)
+           (let ((start (search "(lambda" response)))
+             (setf code (read-from-string (subseq response start)))))
+          ;; Just the lambda without parens
+          ((search "lambda" response)
+           (let ((start (search "lambda" response)))
+             (setf code (read-from-string (concatenate 'string "(" 
+                                                      (subseq response start))))))
+          ;; Try reading the whole thing
+          (t (setf code (read-from-string response))))
+        
+        ;; Validate the code
+        (when (and (listp code)
+                   (eq (first code) 'lambda)
+                   (listp (second code)) ; Valid parameter list
+                   (validate-code-tree code *allowed-eurisko-symbols*))
+          (cprin1 35 "Successfully parsed LLM code~%")
+          (setf *llm-generated-code* code)))
+    (error (e) 
+      (cprin1 20 "Failed to parse LLM code: " e "~%")
+      (log-parse-failure 'h-llm-implement-concept response "Invalid Lisp syntax")
+      nil)))
+
+(defun infer-signature (unit code)
+  "Infer domain and range from lambda expression"
+  (when (and (listp code) (eq (first code) 'lambda))
+    (let ((params (second code))
+          (arity (length (second code))))
+      ;; Set arity
+      (put unit 'arity arity)
+      ;; Default domain - ANYTHING for each parameter
+      (put unit 'domain (make-list arity :initial-element 'anything))
+      ;; Try to infer better domain from parameter names
+      (when (and (= arity 1) 
+                 (member (first params) '(s list struc struct)))
+        (put unit 'domain '(structure)))
+      (when (and (= arity 1)
+                 (member (first params) '(n num number x)))
+        (put unit 'domain '(nnumber)))
+      (when (and (= arity 2)
+                 (member (first params) '(x n))
+                 (member (second params) '(s list struct)))
+        (put unit 'domain '(anything structure)))
+      ;; Default range
+      (put unit 'range '(anything))
+      (cprin1 40 "Inferred signature for " unit ": domain=" (domain unit) 
+              ", range=" (range unit) ", arity=" arity "~%"))))
+
+(defun test-generated-code (unit code test-inputs)
+  "Safely test generated code with timeout and error handling"
+  (let ((success-count 0)
+        (total-tests (length test-inputs)))
+    (dolist (input test-inputs)
+      (handler-case
+          (bt:with-timeout (0.1) ; 100ms timeout per test
+            (let ((result (apply code input)))
+              (cprin1 50 "Test input " input " -> " result "~%")
+              (incf success-count)))
+        (error (e)
+          (cprin1 40 "Code failed on input " input ": " e "~%"))))
+    (cprin1 35 "Code testing: " success-count "/" total-tests " successful~%")
+    (> success-count 0))) ; Accept if any test succeeds
+
+(defun generate-test-inputs (unit)
+  "Generate appropriate test inputs based on domain"
+  (let ((dom (domain unit))
+        (arity (or (arity unit) 1)))
+    (cond 
+      ;; Single structure argument
+      ((and (= arity 1) (equal dom '(structure)))
+       '((nil) ((a)) ((a b)) ((a b c)) ((1 2 3))))
+      ;; Single number argument
+      ((and (= arity 1) (equal dom '(nnumber)))
+       '((0) (1) (2) (5) (10)))
+      ;; Two arguments
+      ((= arity 2)
+       '((nil nil) ((a) (b)) ((a b) (c d)) (1 2) (0 5)))
+      ;; Default: simple test cases
+      (t '((nil) (t) ((a)) (1))))))
+
+;;; The main heuristic
+
+(defheuristic h-llm-implement-concept
+  isa (heuristic op anything)
+  english "IF an LLM concept needs implementation, THEN ask LLM for Eurisko-style code"
+  worth 750
+  abbrev "LLM provides executable code for hollow concepts"
+  if-potentially-relevant (lambda (f)
+                          (and (get f 'llm-generated)
+                               (null (alg f))
+                               (null (defn f))))
+  then-compute (lambda (f)
+                (let* ((template "Generate a Common Lisp function for ~A: ~A
+
+Requirements:
+- Return a lambda expression: (lambda (args...) body)
+- Use ONLY these functions: ~{~A~^, ~}
+- For calling other Eurisko operations use: (run-alg 'operation-name args)
+- Keep it simple and focused on the core functionality
+
+Example format:
+(lambda (x y)
+  (cond ((null x) y)
+        (t (cons (car x) ...))))
+
+Generate the lambda expression:")
+                       (prompt (format nil template 
+                                     f 
+                                     (or (get f 'english) "LLM-suggested concept")
+                                     *allowed-eurisko-symbols*))
+                       (response (llm-query prompt)))
+                  (cprin1 30 "LLM code response received, parsing...~%")
+                  (parse-llm-code response)
+                  ;; Store response for debugging
+                  (put f 'llm-code-response response)))
+  then-modify-slots (lambda (f)
+                     (when *llm-generated-code*
+                       (cprin1 25 "Installing generated code for " f "~%")
+                       ;; First compile it to check for errors
+                       (handler-case
+                           (let ((compiled (compile nil *llm-generated-code*)))
+                             (put f 'fast-alg compiled)
+                             (put f 'llm-generated-alg *llm-generated-code*)
+                             ;; Infer and set signature
+                             (infer-signature f *llm-generated-code*)
+                             ;; Test the code
+                             (let ((test-inputs (generate-test-inputs f)))
+                               (when (test-generated-code f compiled test-inputs)
+                                 (cprin1 20 "Successfully implemented " f " with LLM-generated code~%")
+                                 (incf (getf *llm-heuristic-stats* :concepts-implemented 0))
+                                 t)))
+                         (error (e)
+                           (cprin1 20 "Failed to compile generated code: " e "~%")
+                           (put f 'llm-code-error (format nil "~A" e))
+                           nil))))
+  then-add-to-agenda (lambda (f)
+                      (when (alg f)
+                        ;; Now that it has an algorithm, schedule exploration
+                        (add-to-agenda 
+                          `((,(+ 50 (worth f)) ,f applics 
+                             (("Now that" ,f "has an implementation, find applications"))
+                             ((credit-to h-llm-implement-concept)))
+                            (,(+ 30 (worth f)) ,f examples
+                             (("Now that" ,f "has an implementation, find examples"))  
+                             ((credit-to h-llm-implement-concept)))))
+                        (add-task-results 'new-tasks 
+                                         '("2 tasks to explore newly implemented concept"))))
+  arity 1)
+
+;;; Helper function to force implementation attempts
+(defun try-implement-llm-concepts (&optional (limit 5))
+  "Try to implement some LLM-generated concepts that lack algorithms"
+  (let ((candidates (remove-if-not 
+                      (lambda (u) 
+                        (and (get u 'llm-generated)
+                             (null (alg u))
+                             (null (defn u))))
+                      *units*))
+        (count 0))
+    (dolist (unit (take limit candidates))
+      (format t "~%Attempting to implement ~A...~%" unit)
+      (when (interp2 'h-llm-implement-concept unit)
+        (incf count)))
+    (format t "~%Successfully implemented ~A/~A concepts~%" count (min limit (length candidates)))))
+
+;;; Add to statistics tracking
+(setf (getf *llm-heuristic-stats* :concepts-implemented) 0)
+
+;;; =============================================================================
 ;;; INITIALIZATION
 ;;; =============================================================================
 
@@ -534,6 +751,7 @@ RATIONALE: another rationale")
             h-llm-pattern-find
             h-llm-conjecture
             h-llm-specialize-guided
+            h-llm-implement-concept
             )))
     
     (when (fboundp 'union-prop)
