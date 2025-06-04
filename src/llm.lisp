@@ -405,10 +405,10 @@
                                    (t (format nil "~A" slot-name)))))
            (string= slot-name-str "WORTH"))
          (let ((parsed-number (parse-integer trimmed :junk-allowed t)))
-           (if parsed-number
+           (if (and parsed-number (> parsed-number 0))
                parsed-number
                (progn
-                 (cprin1 40 "Warning: Non-numeric WORTH value '" trimmed "', defaulting to 400~%")
+                 (cprin1 40 "Warning: Invalid WORTH value '" trimmed "', defaulting to 400~%")
                  400))))
         
         ;; Special handling for slots that EURISKO expects as lists
@@ -453,7 +453,6 @@
         
         ;; Default: store as text for safety
         (t trimmed)))))
-
 
 (defun parse-float (string &key (junk-allowed nil))
   "Simple float parser"
