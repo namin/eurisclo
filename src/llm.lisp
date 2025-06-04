@@ -3,6 +3,27 @@
 ;;;; Author: AI Assistant
 ;;;; Date: 2025
 ;;;; Dependencies: drakma (HTTP client), cl-json (JSON handling)
+;;;;
+;;;; OVERVIEW:
+;;;; This file adds LLM-powered heuristics to EURISKO that replace random mutations
+;;;; with semantically-guided concept evolution. Instead of blindly mutating slots,
+;;;; these heuristics use large language models to understand the mathematical 
+;;;; context and make intelligent changes.
+;;;;
+;;;; KEY IMPROVEMENTS OVER ORIGINAL HEURISTICS:
+;;;; 1. SEMANTIC UNDERSTANDING: LLMs understand what concepts mean, not just structure
+;;;; 2. CONTEXT-AWARE DECISIONS: Consider purpose, domain, and applications when evolving
+;;;; 3. INTELLIGENT SPECIALIZATION: Target promising slots based on success patterns
+;;;; 4. FAILURE ANALYSIS: Learn from mistakes instead of just avoiding them
+;;;; 5. WORTH ASSESSMENT: Evaluate conceptual importance beyond just success metrics
+;;;;
+;;;; HEURISTICS ADDED:
+;;;; H30: Smart specialization trigger (replaces blind specialization)
+;;;; H31: Intelligent slot evolution (replaces random mutations) 
+;;;; H32: Semantic worth assessment (enhances traditional metrics)
+;;;; H33: Failure analysis and learning (learns from mistakes)
+;;;; H34: Pattern-based heuristic discovery (creates new heuristics)
+;;;; H35: Contextual example generation (creates meaningful examples)
 
 (in-package "EURISCLO")
 
@@ -356,6 +377,11 @@
   worth 800
   abbrev "LLM-guided specialization of mixed-result operations"
   then-compute (lambda (f)
+                 ;; DOCUMENTATION: This heuristic replaces H1's random specialization
+                 ;; with intelligent analysis. Instead of randomly picking slots to
+                 ;; specialize, it asks the LLM to analyze which slots would be most
+                 ;; effective to modify based on the success/failure patterns.
+                 (cprin1 40 "H30: Analyzing " f " for intelligent specialization using LLM guidance~%")
                  (let* ((good-apps (remove-if-not (lambda (a) (some #'has-high-worth (cadr a)))
                                                  (applics f)))
                         (bad-apps (remove-if (lambda (a) (some #'has-high-worth (cadr a)))
@@ -368,12 +394,18 @@
                                                           (fboundp 'examples)
                                                           (intersection (slot-names f) (examples 'slot)))
                                                      "specialize" context)))
-                   (when target-slot
-                     (setf *slot-to-change* target-slot)
-                     (setf *llm-context* context)
-                     t)))
+                   (if target-slot
+                       (progn
+                         (cprin1 40 "H30: LLM selected slot '" target-slot "' for specialization of " f "~%")
+                         (setf *slot-to-change* target-slot)
+                         (setf *llm-context* context)
+                         t)
+                       (progn
+                         (cprin1 40 "H30: LLM could not identify a suitable slot for " f "~%")
+                         nil))))
   then-add-to-agenda (lambda (f)
                        (when *slot-to-change*
+                         (cprin1 40 "H30: Adding intelligent specialization task for " f " slot " *slot-to-change* "~%")
                          (add-to-agenda 
                           `((,(average-worths f 'h30-llm-specialize)
                              ,f specializations
@@ -398,27 +430,43 @@
                             (setf *slot-to-change* (cadr (assoc 'slot-to-change *cur-sup*)))
                             (setf *llm-context* (cadr (assoc 'llm-context *cur-sup*)))))
   then-compute (lambda (task)
+                 ;; DOCUMENTATION: This is the core LLM evolution heuristic. It replaces
+                 ;; H6/H18's random mutations with semantic understanding. Instead of
+                 ;; calling SpecializeLispPred/GeneralizeLispFn with random changes,
+                 ;; it asks the LLM to understand the slot's purpose and evolve it
+                 ;; intelligently while preserving functionality.
                  (declare (ignore task))
+                 (cprin1 40 "H31: Beginning LLM-guided evolution of " *slot-to-change* " slot in " *cur-unit* "~%")
                  (setf *old-value* (funcall *slot-to-change* *cur-unit*))
-                 (setf *new-value* 
-                       (llm-evolve-slot-value 
-                        *cur-unit* 
-                        *slot-to-change* 
-                        *old-value*
-                        (if (is-a-kind-of *cur-slot* 'specializations) 
-                            "specialize" "generalize")
-                        (or *llm-context* "No specific context")))
+                 (cprin1 40 "H31: Current value: " *old-value* "~%")
                  
-                 (cond ((equal *old-value* *new-value*)
-                        (cprin1 15 "~%LLM couldn't find meaningful evolution for " 
-                                *slot-to-change* " slot of " *cur-unit* "~%")
-                        nil)
-                       (t (cprin1 15 "~%LLM evolved " *slot-to-change* " from " 
-                                 *old-value* " to " *new-value* "~%")
-                          t)))
+                 (let ((operation (if (is-a-kind-of *cur-slot* 'specializations) 
+                                     "specialize" "generalize")))
+                   (cprin1 40 "H31: Requesting LLM to " operation " the slot value~%")
+                   (setf *new-value* 
+                         (llm-evolve-slot-value 
+                          *cur-unit* 
+                          *slot-to-change* 
+                          *old-value*
+                          operation
+                          (or *llm-context* "No specific context")))
+                   
+                   (cond ((equal *old-value* *new-value*)
+                          (cprin1 40 "H31: LLM evolution failed - no meaningful change found~%")
+                          (cprin1 15 "~%LLM couldn't find meaningful evolution for " 
+                                  *slot-to-change* " slot of " *cur-unit* "~%")
+                          nil)
+                         (t (cprin1 40 "H31: LLM successfully evolved slot value~%")
+                            (cprin1 15 "~%LLM evolved " *slot-to-change* " from " 
+                                   *old-value* " to " *new-value* "~%")
+                            t))))
   then-define-new-concepts (lambda (task)
+                             ;; DOCUMENTATION: Creates the new concept with the LLM-evolved
+                             ;; slot value. This follows the same pattern as H6/H18 but
+                             ;; with semantically meaningful changes instead of random ones.
                              (declare (ignore task))
                              (when *new-value*
+                               (cprin1 40 "H31: Creating new concept with evolved slot value~%")
                                (let ((new-unit (create-unit *cur-unit* *cur-unit*)))
                                  (put new-unit *slot-to-change* *new-value*)
                                  (setf *new-units* (cdr (assoc 'new-units *task-results*)))
@@ -433,6 +481,7 @@
                                      (progn
                                        (addprop *cur-unit* 'generalizations new-unit)
                                        (addprop new-unit 'specializations *cur-unit*)))
+                                 (cprin1 40 "H31: Successfully created " new-unit " with LLM-guided evolution~%")
                                  t)))
   arity 1)
 
@@ -448,20 +497,28 @@
                                      (assoc 'new-units *task-results*)
                                      (setf *new-units* (cdr (assoc 'new-units *task-results*)))))
   then-compute (lambda (task)
+                 ;; DOCUMENTATION: This heuristic enhances EURISKO's worth assessment
+                 ;; by adding semantic understanding. Traditional worth is based on
+                 ;; success metrics, but this considers conceptual importance,
+                 ;; generalizability, and mathematical significance that an LLM
+                 ;; can recognize from the concept's description and purpose.
                  (declare (ignore task))
+                 (cprin1 40 "H32: Performing LLM-enhanced worth assessment for new units~%")
                  (dolist (unit *new-units*)
                    (let* ((current-worth (or (worth unit) 400))
                           (apps (applics unit))
                           (context (format nil "Created by: ~A. Current worth: ~A" 
                                          (creditors unit) current-worth))
                           (llm-worth (llm-assess-worth unit apps context)))
-                     (when llm-worth
-                       (let ((adjusted-worth (floor (+ current-worth llm-worth) 2)))
-                         (put unit 'worth adjusted-worth)
-                         (put unit 'llm-worth-reason 
-                              (format nil "LLM assessment: ~A (was ~A)" 
-                                     llm-worth current-worth))
-                         (cprin1 48 "LLM adjusted worth of " unit " to " adjusted-worth "~%")))))
+                     (if llm-worth
+                         (let ((adjusted-worth (floor (+ current-worth llm-worth) 2)))
+                           (put unit 'worth adjusted-worth)
+                           (put unit 'llm-worth-reason 
+                                (format nil "LLM assessment: ~A (was ~A)" 
+                                       llm-worth current-worth))
+                           (cprin1 40 "H32: LLM adjusted worth of " unit " from " current-worth " to " adjusted-worth "~%")
+                           (cprin1 48 "LLM adjusted worth of " unit " to " adjusted-worth "~%"))
+                         (cprin1 40 "H32: LLM worth assessment failed for " unit "~%"))))
                  t)
   arity 1)
 
@@ -478,6 +535,11 @@
                                        (or (null new-units)
                                            (every (lambda (u) (< (worth u) 200)) new-units)))))
   then-compute (lambda (task)
+                 ;; DOCUMENTATION: This heuristic goes beyond the original H12-H14
+                 ;; h-avoid rules. Instead of just creating avoidance rules after
+                 ;; failures, it uses LLM to analyze WHY the failure occurred and
+                 ;; suggests better approaches. This enables learning from mistakes
+                 ;; rather than just avoiding them.
                  (declare (ignore task))
                  (let* ((operation (if (is-a-kind-of *cur-slot* 'specializations) 
                                       "specialization" "generalization"))
@@ -486,15 +548,19 @@
                         (new-val (if (boundp '*new-value*) *new-value* "not-set"))
                         (context (format nil "Task: ~A ~A of ~A. Slot: ~A. Old: ~A New: ~A" 
                                        operation *cur-slot* *cur-unit* slot-to-change
-                                       old-val new-val))
-                        (analysis (llm-explain-failure *cur-unit* operation 
-                                                      old-val new-val context)))
-                   (when analysis
-                     (add-task-results 'failure-analysis 
-                                      `((unit ,*cur-unit*)
-                                        (operation ,operation)
-                                        (analysis ,analysis)))
-                     (cprin1 40 "~%LLM Failure Analysis: " analysis "~%"))
+                                       old-val new-val)))
+                   (cprin1 40 "H33: Analyzing failure - " operation " of " *cur-unit* " produced low-worth results~%")
+                   (let ((analysis (llm-explain-failure *cur-unit* operation 
+                                                       old-val new-val context)))
+                     (if analysis
+                         (progn
+                           (cprin1 40 "H33: LLM provided failure analysis and improvement suggestions~%")
+                           (add-task-results 'failure-analysis 
+                                            `((unit ,*cur-unit*)
+                                              (operation ,operation)
+                                              (analysis ,analysis)))
+                           (cprin1 40 "~%LLM Failure Analysis: " analysis "~%"))
+                         (cprin1 40 "H33: LLM failure analysis was unsuccessful~%")))
                    t))
   arity 1)
 
@@ -511,18 +577,28 @@
                                      (> (length (remove-if-not (lambda (u) (< (worth u) 200)) 
                                                               *all-units*)) 3)))
   then-compute (lambda (task)
+                 ;; DOCUMENTATION: This is a meta-heuristic that generates new heuristics
+                 ;; based on observed patterns. It goes beyond EURISKO's original
+                 ;; capability by using LLM to analyze successful strategies and
+                 ;; failed approaches, then synthesize new rules. This enables
+                 ;; the system to evolve its own reasoning capabilities.
                  (declare (ignore task))
                  (let* ((successful-patterns (mapcar (lambda (c) (english c))
                                                    (subseq *conjectures* 0 (min 3 (length *conjectures*)))))
                         (failed-units (remove-if-not (lambda (u) (< (worth u) 200)) *all-units*))
                         (failed-patterns (mapcar (lambda (u) (list u (creditors u)))
                                                (subseq failed-units 0 (min 3 (length failed-units)))))
-                        (domain "mathematical concept discovery")
-                        (suggestion (llm-suggest-new-heuristic successful-patterns 
-                                                              failed-patterns domain)))
-                   (when suggestion
-                     (add-task-results 'llm-heuristic-suggestions suggestion)
-                     (cprin1 13 "~%LLM suggested new heuristic: " suggestion "~%"))
+                        (domain "mathematical concept discovery"))
+                   (cprin1 40 "H34: Analyzing " (length *conjectures*) " successful patterns and " 
+                          (length failed-units) " failure patterns~%")
+                   (let ((suggestion (llm-suggest-new-heuristic successful-patterns 
+                                                               failed-patterns domain)))
+                     (if suggestion
+                         (progn
+                           (cprin1 40 "H34: LLM generated new heuristic suggestion~%")
+                           (add-task-results 'llm-heuristic-suggestions suggestion)
+                           (cprin1 13 "~%LLM suggested new heuristic: " suggestion "~%"))
+                         (cprin1 40 "H34: LLM could not generate meaningful heuristic suggestion~%")))
                    t))
   arity 1)
 
