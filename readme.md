@@ -4,6 +4,8 @@ This is a work in progress.
 It seems to work a bit.
 See some [sample output](output.md).
 
+This branch adds heuristics and meta-heuristics that use LLMs.
+
 ## Related links
 
 - [Angle's work is on Gitlab](https://gitlab.com/AngularAngel/eurisclo/-/branches). See the [diff history](diff.md) between our branches.
@@ -17,10 +19,13 @@ See some [sample output](output.md).
 ```
 (ql:quickload "eurisclo")
 (in-package :eurisclo)
-(eurisko 100 t) ;; 40 is also a good less noisy level
+(configure-llm :ollama :api-key "ollama" :model "qwen2.5:14b") ;; configure LLM
+(llm-query "What is 2+2?") ;; test LLM
+(eurisko 100 t) ;; 41 is also a good less noisy level
 ;; wait ad infinitum...
 (stop)
 (print-run-info)
+(show-llm-insights)
 ```
 
 ## How to inspect running process (examples)
