@@ -265,6 +265,7 @@
   (let* ((full-prompt (if context
                          (format nil "Context: ~A~%~%Query: ~A" context prompt)
                          prompt))
+         (_ (cprin1 40 "Prompt: " full-prompt "~%"))
          (response (eurisko-llm-api-call full-prompt 
                                         :provider provider 
                                         :model model 
@@ -276,6 +277,7 @@
         ;; Ensure we always return a string
         (unless (stringp text)
           (setf text (format nil "~A" text)))
+        (cprin1 40 "Response: " text)
         text))))
 
 ;;; =============================================================================
