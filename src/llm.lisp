@@ -305,6 +305,52 @@
 ;;; SYMBOLIC INTEGRATION UTILITIES
 ;;; =============================================================================
 
+(defvar *unit-failure-counts* (make-hash-table)
+  "Track how many times each unit has failed operations")
+
+(defun count-failures-for-unit (unit)
+  "Count how many times a unit has failed operations"
+  (gethash unit *unit-failure-counts* 0))
+
+(defun record-failure-for-unit (unit)
+  "Record a failure for a unit"
+  (setf (gethash unit *unit-failure-counts*)
+        (1+ (gethash unit *unit-failure-counts* 0))))
+
+(defun implement-llm-rule (rule-def)
+  "Convert an LLM-generated rule into a working EURISKO heuristic"
+  (when rule-def
+    (let* ((rule-name (cdr (assoc 'name rule-def)))
+           (condition-text (cdr (assoc 'condition rule-def)))
+           (action-text (cdr (assoc 'action rule-def)))
+           (worth (or (cdr (assoc 'worth rule-def)) 400)))
+      
+      (when (and rule-name condition-text action-text)
+        (cprin1 40 "Implementing LLM rule: " rule-name "~%")
+        
+        ;; For now, create a simple avoidance heuristic
+        ;; In a full implementation, you'd parse condition-text into actual Lisp predicates
+        (eval 
+         `(defheuristic ,rule-name
+            isa (heuristic op anything)
+            english ,(format nil "LLM-Generated: ~A" action-text)
+            if-potentially-relevant (lambda (f)
+                                      ;; Simple heuristic: avoid if unit has failed before
+                                      (> (count-failures-for-unit f) 1))
+            worth ,worth
+            abbrev ,(format nil "LLM: ~A" (subseq action-text 0 (min 50 (length action-text))))
+            then-compute (lambda (f)
+                           (cprin1 15 "LLM rule " ',rule-name " preventing operation on " f "~%")
+                           nil) ; Return nil to prevent the operation
+            arity 1))
+        
+        ;; Register the new heuristic
+        (when (fboundp 'union-prop)
+          (union-prop 'heuristic 'examples rule-name))
+        
+        (cprin1 15 "Successfully implemented heuristic: " rule-name "~%")
+        t))))
+
 (defun create-concept-from-llm (concept-def)
   "Create a EURISKO concept from LLM-generated definition"
   (when concept-def
@@ -454,31 +500,36 @@ Focus on mathematically meaningful changes that preserve correctness while makin
 
 (defheuristic h32-llm-failure-analyzer
   isa (heuristic op anything)
-  english "IF a task fails, THEN use LLM to generate structured avoidance rules"
+  english "IF a concept repeatedly fails in the same way, THEN use LLM to generate structured avoidance rules"
   if-potentially-relevant null
   worth 750
-  abbrev "LLM-powered failure analysis with rule generation"
+  abbrev "LLM-powered failure pattern analysis with rule generation"
   if-finished-working-on-task (lambda (task)
                                 (declare (ignore task))
                                 (and *llm-api-key*
+                                     ;; Only trigger for repeated failures, not early exploration
+                                     (> *task-num* 50)  ; Allow early exploration
                                      (let ((new-units (cdr (assoc 'new-units *task-results*))))
-                                       (or (null new-units)
-                                           (every (lambda (u) (< (worth u) 200)) new-units)))))
+                                       (and (or (null new-units)
+                                               (every (lambda (u) (< (worth u) 200)) new-units))
+                                            ;; Check if this unit has failed before
+                                            (> (count-failures-for-unit *cur-unit*) 2)))))
   then-compute (lambda (task)
                  (declare (ignore task))
                  (let* ((operation (if (is-a-kind-of *cur-slot* 'specializations) 
                                       "specialization" "generalization"))
-                        (failure-context (format nil "Failed ~A of ~A" operation *cur-unit*))
-                        (prompt (format nil "This mathematical operation failed: ~A
+                        (failure-context (format nil "Repeated failed ~A of ~A" operation *cur-unit*))
+                        (prompt (format nil "This mathematical operation has failed multiple times: ~A
 
-Analyze why this might have failed and suggest a prevention rule.
+This suggests a systematic issue, not random exploration failure.
+Analyze why this type of operation consistently fails and suggest a prevention rule.
 
 Provide in this format:
 IF: [condition that indicates when to avoid this type of operation]
 THEN: [action to take instead]  
 WORTH: [estimated worth of this rule 100-800]
 
-Focus on mathematical principles and structural properties that led to failure."
+Focus on mathematical principles and structural properties that lead to systematic failure."
                                        failure-context))
                         (response (llm-query prompt :temperature 0.6)))
                    (when response
@@ -486,7 +537,7 @@ Focus on mathematical principles and structural properties that led to failure."
                        (if rule-def
                            (let ((new-rule (create-avoidance-rule-from-llm rule-def failure-context)))
                              (when new-rule
-                               (cprin1 15 "LLM generated avoidance rule: " new-rule "~%")
+                               (cprin1 15 "LLM generated avoidance rule for repeated failure: " new-rule "~%")
                                (add-task-results 'llm-avoidance-rule new-rule)
                                t))
                            (progn
@@ -583,6 +634,33 @@ REASON: [why this relationship is mathematically significant]"
                              nil))))))
   arity 1)
 
+(defheuristic h35-llm-insight-implementer
+  isa (heuristic op anything)
+  english "IF we have accumulated LLM insights, THEN convert them into working EURISKO heuristics"
+  if-potentially-relevant (lambda (f)
+                            (declare (ignore f))
+                            (and *llm-api-key*
+                                 (> (length *llm-suggested-rules*) 2)
+                                 ;; Only run periodically to avoid spam
+                                 (= (mod *task-num* 25) 0)))
+  worth 600
+  abbrev "Automatic implementation of LLM-generated heuristic insights"
+  then-compute (lambda (f)
+                 (declare (ignore f))
+                 (cprin1 40 "H35: Converting LLM insights into working heuristics~%")
+                 (let ((implemented-count 0))
+                   (dolist (rule-def *llm-suggested-rules*)
+                     (when (and rule-def (not (getf rule-def 'implemented)))
+                       (let ((success (implement-llm-rule rule-def)))
+                         (when success
+                           (incf implemented-count)
+                           (setf (getf rule-def 'implemented) t)))))
+                   (when (> implemented-count 0)
+                     (cprin1 15 "H35: Successfully implemented " implemented-count " LLM-generated heuristics~%")
+                     (add-task-results 'implemented-heuristics implemented-count)
+                     t)))
+  arity 1)
+
 ;;; =============================================================================
 ;;; LLM CONFIGURATION AND UTILITIES
 ;;; =============================================================================
@@ -635,7 +713,8 @@ REASON: [why this relationship is mathematically significant]"
                          h31-llm-slot-evolver
                          h32-llm-failure-analyzer
                          h33-llm-pattern-recognizer
-                         h34-llm-relation-discoverer)))
+                         h34-llm-relation-discoverer
+                         h35-llm-insight-implementer)))
     
     ;; Add to examples of 'heuristic if that's how EURISKO tracks them
     (when (fboundp 'union-prop)
