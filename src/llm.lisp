@@ -181,6 +181,18 @@
             keys
             :initial-value plist)))
 
+(defun escape-json-string (str)
+  "Escape a string for JSON"
+  (with-output-to-string (out)
+    (loop for char across str do
+      (case char
+        (#\" (write-string "\\\"" out))
+        (#\\ (write-string "\\\\" out))
+        (#\Newline (write-string "\\n" out))
+        (#\Return (write-string "\\r" out))
+        (#\Tab (write-string "\\t" out))
+        (otherwise (write-char char out))))))
+
 (defun eurisko-llm-api-call (prompt &key provider model temperature max-tokens)
   "Make HTTP request to LLM API - renamed to avoid conflicts"
   (let* ((provider (or provider *llm-provider*))
@@ -194,7 +206,7 @@
           (:gemini
            (if (and api-key (stringp api-key) (not (string= api-key "")))
                (let* ((json-string (format nil "{\"contents\":[{\"parts\":[{\"text\":\"~A\"}]}],\"generationConfig\":{\"temperature\":~A,\"maxOutputTokens\":~A}}" 
-                                          prompt 
+                                          (escape-json-string prompt)
                                           (or temperature *llm-temperature*)
                                           (or max-tokens *llm-max-tokens*)))
                       (full-url (format nil "~A~A:generateContent?key=~A" base-url model api-key)))
@@ -213,9 +225,9 @@
                (format nil "Mock Gemini response - no API key")))
           
           (:ollama
-           ;; Ollama doesn't need an API key
+           ;; Ollama doesn't need an API key - escape the prompt for JSON
            (let* ((json-string (format nil "{\"model\":\"~A\",\"prompt\":\"~A\",\"stream\":false,\"options\":{\"temperature\":~A}}" 
-                                      model prompt (or temperature *llm-temperature*)))
+                                      model (escape-json-string prompt) (or temperature *llm-temperature*)))
                   (full-url base-url))
              (multiple-value-bind (response status-code)
                  (drakma:http-request full-url
@@ -237,6 +249,7 @@
            (format nil "Provider ~A not implemented" provider)))
       (error (e)
         (format nil "Error calling LLM: ~A" e)))))
+
 
 (defun find-best-candidate (response candidates)
   "Find the best matching candidate from LLM response"
