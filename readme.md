@@ -28,6 +28,7 @@ See some [sample output for this branch](output_llm.md).
 (stop)
 (print-run-info)
 (show-llm-stats)
+(llm-implementation-report)
 ```
 
 ## How to inspect running process (examples)

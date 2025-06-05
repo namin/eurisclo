@@ -730,6 +730,34 @@ Write only the lambda, no explanation:"
 ;;; Add to statistics tracking
 (setf (getf *llm-heuristic-stats* :concepts-implemented) 0)
 
+(defun llm-implementation-report ()
+  "Detailed report on implementation attempts"
+  (format t "~%=== LLM IMPLEMENTATION REPORT ===~%")
+  
+  ;; Sort by success
+  (let ((success nil)
+        (failure nil))
+    (dolist (u *units*)
+      (when (and (get u 'llm-generated)
+                 (get u 'llm-code-response))
+        (if (alg u)
+            (push u success)
+            (push u failure))))
+    
+    (format t "~%SUCCESSFUL IMPLEMENTATIONS (~A):~%" (length success))
+    (dolist (s success)
+      (format t "~%~A:~%" s)
+      (format t "  Code: ~A~%" (get s 'llm-generated-alg)))
+    
+    (format t "~%FAILED IMPLEMENTATIONS (~A):~%" (length failure))
+    (dolist (f (take 5 failure))
+      (format t "~%~A:~%" f)
+      (format t "  Response: ~A...~%" 
+              (subseq (get f 'llm-code-response) 0 
+                      (min 80 (length (get f 'llm-code-response)))))
+      (when (get f 'llm-code-error)
+        (format t "  Error: ~A~%" (get f 'llm-code-error))))))
+
 ;;; =============================================================================
 ;;; INITIALIZATION
 ;;; =============================================================================
