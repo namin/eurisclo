@@ -649,6 +649,8 @@ RATIONALE: another rationale")
                 (let* ((prompt (format nil "Write a lambda expression for ~A (~A).
 Use only: cons, car, cdr, list, null, equal, cond, if, +, -, *, <, >
 Example: (lambda (x y) (cons x y))
+To call another Eurisko operation, use: (run-alg 'operation-name args)
+Example: (lambda (x) (run-alg 'square x))
 Write only the lambda, no explanation:" 
                                      f 
                                      (or (get f 'english) "concept")))
