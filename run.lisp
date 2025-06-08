@@ -40,11 +40,13 @@
 
 (setf *batch-mode* t)
 
-(let ((seed-arg (cadr sb-ext:*posix-argv*)))
-  (let ((seed (parse-integer seed-arg)))
+(let ((seed-arg (cadr sb-ext:*posix-argv*))
+      (verbose-arg (if (cddr sb-ext:*posix-argv*) (caddr sb-ext:*posix-argv*) "0")))
+  (let ((seed (parse-integer seed-arg))
+        (verbose (parse-integer verbose-arg)))
     (setf *random-state* (initialize-seed seed)) ; Use our seeded random state
     (format t "Running eurisko with seed ~A~%" seed)
-    (eurisko 0 t)
+    (eurisko verbose t)
     (start t (lambda () (stop-criteria (run-stat))))
     (format t "Stats: ~A~%" (run-stats))
     (format t "Success metric: ~A~%" (success-criteria (run-stat)))))
