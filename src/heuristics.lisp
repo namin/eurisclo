@@ -236,10 +236,9 @@
                        (declare (ignore task))
                        (and (is-a-kind-of *cur-slot* 'specializations)
                             (null (assoc 'slot-to-change *cur-sup*))
-                            (>= 11 (the-number-of (lambda (z)
+                            (>= 11 (the-number-of *agenda* (lambda (z)
                                                     (and (eq *cur-unit* (extract-unit-name z))
-                                                         (eq *cur-slot* (extract-slot-name z))))
-                                                  *agenda*))))
+                                                         (eq *cur-slot* (extract-slot-name z))))))))
   then-print-to-user (lambda (task)
                        (declare (ignore task))
                        (cprin1 13 "~%" *new-reason* "~%~%")
@@ -1445,11 +1444,13 @@
   english "IF an op f (e.g., a math function, a heuristic, a slot) can apply to any of the domain items of another op, THEN so apply it and maybe some patterns will emerge"
   if-potentially-relevant (lambda (f)
                             ;; TODO - make this an actual slot describing F, instead of implying it all the time?
+			    ;; Axelpuff - This original comment is the same as H1/H16 but irrelevant here
                             ;; ORIG: check that f has some recorded applications -- which
                             ;;       implies, of course, that f is an
                             ;;       executable/performable entity
                             (setf *alg-to-use* (alg f)))
   if-truly-relevant (lambda (f)
+		      ;; Axelpuff - This original comment is the same as H1/H16 but irrelevant here
                       ;; ORIG: check that some Applics of f have high Worth, but most have low Worth
                       ;; ORIG: the extent to which those conditions are met will
                       ;;       determine the amount of energy to expend working on
